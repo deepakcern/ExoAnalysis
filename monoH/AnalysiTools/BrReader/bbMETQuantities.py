@@ -1,0 +1,571 @@
+from ROOT import TFile, TTree, TH1F, TH1D, TH1, TCanvas, TChain,TGraphAsymmErrors, TMath, TH2D, TH2F
+import ROOT as ROOT
+import AllQuantList
+from array import array
+import os
+class MonoHbbQuantities:
+
+    def __init__(self, rootfilename):
+
+        allquantlist=AllQuantList.getAll()
+        preselquantlist=AllQuantList.getPresel()
+        regquants=AllQuantList.getRegionQuants()
+
+        for quant in allquantlist:
+            exec("self."+quant+" = None")
+            exec("self.h_"+quant+" = []")
+
+        for quant in preselquantlist:
+            exec("self."+quant+" = None")
+            exec("self.h_"+quant+" = []")
+
+        for quant in regquants:
+            exec("self."+quant+" = None")
+            exec("self.h_"+quant+" = []")
+
+        Histos2D=AllQuantList.getHistos2D()
+            #Convention: First item in name will be x-axis, second will be y-axis
+
+        for quant in Histos2D:
+            exec("self."+quant+" = None")       #Convention: Will use this as a list of two numbers, first being x-value and second being y-value.
+            exec("self.h_"+quant+" = []")
+
+        self.rootfilename = rootfilename
+        #self.allquantities = allquantities
+        #self.regime   =  True
+
+        self.met      =  -999.0
+        self.h_met         =  []
+        #self.h_met_rebin         =  []
+
+        #self.mass     =  -999.0
+        #self.h_mass        =  []
+
+#        self.csv1     =  -999.0
+#        self.h_csv1        =  []
+#
+#        self.csv2     =  -999.0
+#        self.h_csv2        =  []
+
+#        self.mt              = -999.
+        #self.dPhi            = -999.
+        self.N_e             = -10
+        self.N_mu            = -10
+        self.N_tau           = -10
+        self.N_Pho           = -10
+        self.N_b             = -10
+        self.N_j             = -10
+
+        self.h_mt              = []
+        #self.h_dPhi            = []
+        self.h_N_e             = []
+        self.h_N_mu            = []
+        self.h_N_tau           = []
+        self.h_N_Pho           = []
+        self.h_N_b             = []
+        self.h_N_j             = []
+        #self.h_mass            = []
+        self.h_met_pdf         = []
+        self.h_met_muR         = []
+        self.h_met_muF         = []
+
+        ## 2d histograms
+        self.h_met_vs_mass     = []
+
+        self.weight   = 1.0
+        self.weight_NoPU = 1.0
+        self.weight_btag_up = 1.0
+        self.weight_btag_down = 1.0
+        self.weight_lep_up = 1.0
+        self.weight_lep_down = 1.0
+        self.weight_met_up = 1.0
+        self.weight_met_down = 1.0
+        self.weight_ewkZ_up = 1.0
+        self.weight_ewkZ_down = 1.0
+        self.weight_ewkW_up = 1.0
+        self.weight_ewkW_down = 1.0
+        self.weight_ewkTop_up = 1.0
+        self.weight_ewkTop_down = 1.0
+        self.weight_pho_up = 1.0
+        self.weight_pho_down = 1.0
+        self.weight_jec_up = 1.0
+        self.weight_jec_down = 1.0
+
+
+        self.weight_pdf   = []
+        self.weight_muR   = []
+        self.weight_muF   = []
+
+        self.h_total   = []
+        self.h_total_weight   = []
+        self.h_npass   = []
+
+    def defineHisto(self):
+        self.h_total.append(TH1F('h_total','h_total',2,0,2))
+        self.h_total_weight.append(TH1F('h_total_weight','h_total_weight',2,0,2))
+        self.h_npass.append(TH1F('h_npass','h_nass',2,0,2))
+
+#        self.h_cutflow=TH1F('h_cutflow_','h_cutflow_',7, 0, 7)                          # Cutflow
+
+        self.h_met.append(TH1F('h_met_',  'h_met_',  1000,0.,1000.))
+
+
+        #metbins_ = [200,350,500,1000]
+        #self.h_met_rebin.append(TH1F('h_met_rebin_'+postname,  'h_met_rebin'+postname,  3, array(('d'),metbins_)))
+
+        #self.h_mass.append(TH1F('h_mass_'+postname, 'h_mass_'+postname, 400,0.,400.))
+
+        self.h_met_vs_mass.append(TH2F('h_met_vs_mass_', 'h_met_vs_mass_', 1000, 0., 1000., 250, 0, 250.))
+
+#        self.h_csv1.append(TH1F('h_csv1_', 'h_csv1_', 20,0.,1.))
+#        self.h_csv2.append(TH1F('h_csv2_', 'h_csv2_', 20,0.,1.))
+        #self.h_mt.append(TH1F('h_mt_'+postname,'h_mt_'+postname,100,400.,1400.))
+        #self.h_dPhi.append(TH1F('h_dPhi_'+postname,'h_dPhi_'+postname,70, -3.5, 3.5 ))
+        self.h_N_e.append(TH1F('h_N_e_','h_N_e_',5,0,5))
+        self.h_N_mu.append(TH1F('h_N_mu_','h_N_mu_',5,0,5))
+        self.h_N_tau.append(TH1F('h_N_tau_','h_N_tau_',5,0,5))
+        self.h_N_Pho.append(TH1F('h_N_Pho_','h_N_Pho_',5,0,5))
+        self.h_N_b.append(TH1F('h_N_b_','h_N_b_',10,0,10))
+        self.h_N_j.append(TH1F('h_N_j_','h_N_j_',10,0,10))
+
+        allquantlist=AllQuantList.getAll()
+        preselquantlist=AllQuantList.getPresel()
+        regquants=AllQuantList.getRegionQuants()
+
+        def getBins(quant):
+            if 'eta' in quant:
+                bins='15'
+                low='-2.4'
+                high='2.4'
+            elif 'dPhi' in quant:
+                bins='15'
+                low='0'
+                high='3.2'
+            elif 'phi' in quant:
+                bins='15'
+                low='0'
+                high='3'
+            elif 'csv' in quant:
+                bins='100'
+                low='0.'
+                high='1.'
+            elif 'iso' in quant:
+                bins='20'
+                low='0.'
+                high='0.25'
+            elif 'Zmass' in quant:
+                bins='100'
+                low='70.'
+                high='110.'
+            elif 'Wmass' in quant:
+                bins='100'
+                low='0.'
+                high='400.'
+            elif 'met' in quant:
+                bins='2000'
+                low='0.'
+                high='2000.'
+
+            elif 'N2' in quant and not 'N2DDT' in quant:
+                bins='2000'
+                low='0.0'
+                high='1'
+
+	    elif 'N2DDT' in quant:
+		bins='2000'
+		low='-0.5'
+		high='0.5'
+
+
+            elif 'nca15jet' in quant:
+                bins='5'
+                low='0'
+                high='5'
+
+            elif 'nak8jet' in quant:
+                bins='5'
+                low='0'
+                high='5'
+
+            elif  'bb_Mass' in quant:
+                bins='500'
+                low='0.0'
+                high='250.'
+
+
+            elif 'chf' in quant or 'nhf' in quant or 'EF' in quant:
+                bins='15'
+                low='0.'
+                high='1.'
+            elif 'njet' in quant:
+                bins='12'
+                low='0'
+                high='12'
+            elif 'ntau' in quant or 'npho' in quant or 'nele' in quant or 'nmu' in quant or 'nUnclean' in quant:
+                bins='6'
+                low='0'
+                high='6'
+            elif 'recoil' in quant:
+                bins='2000'
+                low='0.'
+                high='2000.'
+            elif '_dR_' in quant:
+                bins='20'
+                low='0.'
+                high='6.'
+
+	    elif 'ca15jet_pT' in quant:
+		bins='2000'
+		low='0.'
+		high='2000'
+
+	    elif 'lep1_pT' in quant:
+		bins='2000'
+		low='0.'
+		high='2000'
+
+	    elif 'SD' in quant:
+                bins='500'
+                low='100.'
+                high='150'
+
+
+            elif  'jet1_pT' in quant:
+                bins='15'
+                low='0.'
+                high='1000.'
+            elif 'lep2_pT' in quant or 'jet2_pT' in quant:
+                bins='15'
+                low='0.'
+                high='400.'
+            elif 'dr_jet_sr2' in quant or 'dr_jet_sr1' in quant:
+                bins='50'
+                low='0.'
+                high='4.'
+            elif 'PV' in quant:
+                bins='100'
+                low='0.'
+                high='100.'
+            elif 'syst' in quant:
+                bins='40'
+                low='0.'
+                high='2000.'
+            else:                   # for pT, mass, etc.
+                bins='100'
+                low='0.'
+                high='1000.'
+
+            return bins,low,high
+
+        for quant in allquantlist:
+            if 'metdjfbv' in  quant or 'systjdhfgv' in quant:
+                xbinnum='[200,270,345,480,1000]'
+                xbins='3'
+                exec("self.h_"+quant+".append(TH1F('h_"+quant+"_','h_"+quant+"_',"+xbins+",array('d',"+xbinnum+")))")
+            else:
+                bins,low,high=getBins(quant)
+                exec("self.h_"+quant+".append(TH1F('h_"+quant+"_','h_"+quant+"_',"+bins+","+low+","+high+"))")
+
+        for quant in preselquantlist:
+            bins,low,high=getBins(quant)
+            exec("self.h_"+quant+".append(TH1F('h_"+quant+"_','h_"+quant+"_',"+bins+","+low+","+high+"))")
+
+        for quant in regquants:
+            if 'hadrecoiljhfdgv' in quant or 'systudfhg' in quant:
+                xbinnum='[200,270,345,480,1000]'
+                xbins='3'
+                exec("self.h_"+quant+".append(TH1F('h_"+quant+"_','h_"+quant+"_',"+xbins+",array('d',"+xbinnum+")))")
+            else:
+                bins,low,high=getBins(quant)
+                exec("self.h_"+quant+".append(TH1F('h_"+quant+"_','h_"+quant+"_',"+bins+","+low+","+high+"))")
+
+
+        def getBins2D(quant):
+            ZpTbins='50'
+            ZpTlow='0.'
+            ZpThigh='500.'
+            Rbins='15'
+            Rlow='200.'
+            Rhigh='500.'
+            Mbins='20'
+            Mlow='0.'
+            Mhigh='500.'
+
+            if 'ZpT_Recoil' in quant:
+                return ZpTbins,ZpTlow,ZpThigh,Rbins,Rlow,Rhigh
+            elif 'ZpT_MET' in quant:
+                return ZpTbins,ZpTlow,ZpThigh,Mbins,Mlow,Mhigh
+            elif 'MET_Recoil' in quant:
+                return Mbins,Mlow,Mhigh,Rbins,Rlow,Rhigh
+
+        Histos2D=AllQuantList.getHistos2D()
+        for quant in Histos2D:
+            xbins,xlow,xhigh,ybins,ylow,yhigh=getBins2D(quant)
+            exec("self.h_"+quant+".append(TH2F('h_"+quant+"_','h_"+quant+"_',"+xbins+","+xlow+","+xhigh+","+ybins+","+ylow+","+yhigh+"))")
+
+        h_met_pdf_tmp = []
+        for ipdf in range(2):
+            midname = str(ipdf)
+            h_met_pdf_tmp.append(TH1F('h_met_pdf'+'_'+midname+'_',  'h_met_pdf',  1000,0.,1000.))
+        self.h_met_pdf.append(h_met_pdf_tmp)
+        h_met_muR_tmp = []
+        for imuR in range(2):
+            midname = str(imuR)
+            h_met_muR_tmp.append(TH1F('h_met_muR'+'_'+midname+'_',  'h_met_muR',  1000,0.,1000.))
+        self.h_met_muR.append(h_met_muR_tmp)
+        h_met_muF_tmp = []
+        for imuF in range(2):
+            midname = str(imuF)
+            h_met_muF_tmp.append(TH1F('h_met_muF'+'_'+midname+'_',  'h_met_muF',  1000,0.,1000.))
+        self.h_met_muF.append(h_met_muF_tmp)
+
+        print "Histograms defined"
+
+
+    def FillPreSel(self):
+        WF = self.weight
+        WF1 = self.weight_NoPU
+
+        preselquantlist=AllQuantList.getPresel()
+        for quant in preselquantlist:
+            exec("if self."+quant+" is not None: self.h_"+quant+"[0] .Fill(self."+quant+", WF)")
+
+    def FillRegionHisto(self):
+        WF = self.weight
+        WF1 = self.weight_NoPU
+
+        regquants=AllQuantList.getRegionQuants()
+        for quant in regquants:
+            exec("if self."+quant+" is not None: self.h_"+quant+"[0] .Fill(self."+quant+", WF)")
+
+        Histos2D=AllQuantList.getHistos2D()
+        for quant in Histos2D:
+            exec("if self."+quant+" is not None: self.h_"+quant+"[0] .Fill(self."+quant+"[0], self."+quant+"[1], WF)")
+
+    def FillHisto(self):
+        WF = self.weight
+        WF1 = self.weight_NoPU
+        WF_btag_up = self.weight_btag_up
+        WF_btag_down = self.weight_btag_down
+        WF_lep_up = self.weight_lep_up
+        WF_lep_down = self.weight_lep_down
+        WF_met_up = self.weight_met_up
+        WF_met_down = self.weight_met_down
+        WF_ewkZ_up = self.weight_ewkZ_up
+        if WF_ewkZ_up == 1.0:
+            WF_ewkZ_up = WF
+        WF_ewkZ_down = self.weight_ewkZ_down
+        if WF_ewkZ_down == 1.0:
+            WF_ewkZ_down = WF
+        WF_ewkW_up = self.weight_ewkW_up
+        if WF_ewkW_up == 1.0:
+            WF_ewkW_up = WF
+        WF_ewkW_down = self.weight_ewkW_down
+        if WF_ewkW_down == 1.0:
+            WF_ewkW_down = WF
+        WF_ewkTop_up = self.weight_ewkTop_up
+        if WF_ewkTop_up == 1.0:
+            WF_ewkTop_up = WF
+        WF_ewkTop_down = self.weight_ewkTop_down
+        if WF_ewkTop_down == 1.0:
+            WF_ewkTop_down = WF
+        WF_pho_up = self.weight_pho_up
+        if WF_pho_up == 1.0:
+            WF_pho_up = WF
+        WF_pho_down = self.weight_pho_down
+        if WF_pho_down == 1.0:
+            WF_pho_down = WF
+        WF_jec_up = self.weight_jec_up
+        if WF_jec_up == 1.0:
+            WF_jec_up = WF
+        WF_jec_down = self.weight_jec_down
+        if WF_jec_down == 1.0:
+            WF_jec_down = WF
+
+        #print "WF = ", WF
+        self.h_met[0]        .Fill(self.met,       WF)
+
+
+        for ipdf in range(2):
+            self.h_met_pdf[0]        [ipdf].Fill(self.met,       1.0)
+
+        for imuR in range(2):
+            self.h_met_muR[0]        [imuR].Fill(self.met,       1.0)
+
+        for imuF in range(2):
+            self.h_met_muF[0]        [imuF].Fill(self.met,       1.0)
+
+
+        #self.h_met_vs_mass[0] .Fill(self.met, self.mass, WF)
+
+        #self.h_mass           Fill(self.mass,      WF)
+        #self.h_csv1           .Fill(self.csv1,      WF)
+        #self.h_csv2           .Fill(self.csv2,      WF)
+        #self.h_mt             .Fill(self.mt,        WF)
+        #self.h_dPhi           Fill(self.dPhi,      WF)
+        self.h_N_e[0]            .Fill(self.N_e,       WF)
+        self.h_N_mu[0]           .Fill(self.N_mu,      WF)
+        self.h_N_tau[0]          .Fill(self.N_tau,     WF)
+        self.h_N_Pho[0]          .Fill(self.N_Pho,     WF)
+        self.h_N_b[0]            .Fill(self.N_b,       WF)
+        self.h_N_j[0]            .Fill(self.N_j,       WF)
+#        print len(self.h_jet1_pT_sr1)
+#        print "HbbQuants: "+str(self.jet1_pT_sr2)
+
+        allquantlist=AllQuantList.getAll()
+        for quant in allquantlist:
+            if 'noPuReweightPV' in quant or 'noPuReweightnPVert' in quant:
+                exec("if self."+quant+" is not None: self.h_"+quant+"[0] .Fill(self."+quant+", WF1)")
+            elif 'syst' in quant and 'up' in quant and 'btag' in quant:
+                exec("if self."+quant+" is not None: self.h_"+quant+"[0] .Fill(self."+quant+", WF_btag_up)")
+            elif 'syst' in quant and 'down' in quant and 'btag' in quant:
+                exec("if self."+quant+" is not None: self.h_"+quant+"[0] .Fill(self."+quant+", WF_btag_down)")
+            elif 'syst' in quant and 'up' in quant and 'lep' in quant:
+                exec("if self."+quant+" is not None: self.h_"+quant+"[0] .Fill(self."+quant+", WF_lep_up)")
+            elif 'syst' in quant and 'down' in quant and 'lep' in quant:
+                exec("if self."+quant+" is not None: self.h_"+quant+"[0] .Fill(self."+quant+", WF_lep_down)")
+            elif 'syst' in quant and 'up' in quant and 'metTrig' in quant:
+                exec("if self."+quant+" is not None: self.h_"+quant+"[0] .Fill(self."+quant+", WF_met_up)")
+            elif 'syst' in quant and 'down' in quant and 'metTrig' in quant:
+                exec("if self."+quant+" is not None: self.h_"+quant+"[0] .Fill(self."+quant+", WF_met_down)")
+            elif 'syst' in quant and 'up' in quant and 'ewkZ' in quant:
+                exec("if self."+quant+" is not None: self.h_"+quant+"[0] .Fill(self."+quant+", WF_ewkZ_up)")
+            elif 'syst' in quant and 'down' in quant and 'ewkZ' in quant:
+                exec("if self."+quant+" is not None: self.h_"+quant+"[0] .Fill(self."+quant+", WF_ewkZ_down)")
+            elif 'syst' in quant and 'up' in quant and 'ewkW' in quant:
+                exec("if self."+quant+" is not None: self.h_"+quant+"[0] .Fill(self."+quant+", WF_ewkW_up)")
+            elif 'syst' in quant and 'down' in quant and 'ewkW' in quant:
+                exec("if self."+quant+" is not None: self.h_"+quant+"[0] .Fill(self."+quant+", WF_ewkW_down)")
+            elif 'syst' in quant and 'up' in quant and 'ewkTop' in quant:
+                exec("if self."+quant+" is not None: self.h_"+quant+"[0] .Fill(self."+quant+", WF_ewkTop_up)")
+            elif 'syst' in quant and 'down' in quant and 'ewkTop' in quant:
+                exec("if self."+quant+" is not None: self.h_"+quant+"[0] .Fill(self."+quant+", WF_ewkTop_down)")
+
+            elif 'syst' in quant and 'up' in quant and 'pho' in quant:
+                exec("if self."+quant+" is not None: self.h_"+quant+"[0] .Fill(self."+quant+", WF_pho_up)")
+            elif 'syst' in quant and 'down' in quant and 'pho' in quant:
+                exec("if self."+quant+" is not None: self.h_"+quant+"[0] .Fill(self."+quant+", WF_pho_down)")
+
+            elif 'syst' in quant and 'up' in quant and 'jec' in quant:
+                exec("if self."+quant+" is not None: self.h_"+quant+"[0] .Fill(self."+quant+", WF_jec_up)")
+            elif 'syst' in quant and 'down' in quant and 'jec' in quant:
+                exec("if self."+quant+" is not None: self.h_"+quant+"[0] .Fill(self."+quant+", WF_jec_down)")
+
+            else:
+                exec("if self."+quant+" is not None: self.h_"+quant+"[0] .Fill(self."+quant+", WF)")
+
+
+    def WriteHisto(self, (nevts,nevts_weight,npass,cutflowvaluesSR2,cutflownamesSR2,CRvalues,CRnames,regionnames, CRcutnames,CRcutflowvaluesSet,CRSummaryMu,regNamesMu, CRSummaryEle,regNamesEle)):
+        #outDir='MP_BROutputs'
+        #os.system('mkdir '+outDir)
+        f = TFile(self.rootfilename,'RECREATE')
+        print
+        f.cd()
+        self.h_total[0].SetBinContent(1,nevts)
+        self.h_total[0].Write()
+
+        self.h_total_weight[0].SetBinContent(1,nevts_weight)
+        self.h_total_weight[0].Write()
+
+        self.h_npass[0].SetBinContent(1,npass)
+        self.h_npass[0].Write()
+
+        # ncutflow=len(cutflowvalues)
+        # self.h_cutflow=TH1F('h_cutflow_','h_cutflow_',ncutflow, 0, ncutflow)                          # Cutflow
+        # for icutflow in range(len(cutflowvalues)):
+        #     self.h_cutflow.GetXaxis().SetBinLabel(icutflow+1,cutflownames[icutflow])
+        #     self.h_cutflow.SetBinContent(icutflow+1,cutflowvalues[icutflow])
+        # self.h_cutflow.Write()
+
+        # ncutflowSR1=len(cutflowvaluesSR1)
+        # self.h_cutflowSR1=TH1F('h_cutflow_SR1_','h_cutflow_SR1_',ncutflowSR1, 0, ncutflowSR1)                          # Cutflow
+        # for icutflow in range(len(cutflowvaluesSR1)):
+        #     self.h_cutflowSR1.GetXaxis().SetBinLabel(icutflow+1,cutflownamesSR1[icutflow])
+        #     self.h_cutflowSR1.SetBinContent(icutflow+1,cutflowvaluesSR1[icutflow])
+        # self.h_cutflowSR1.Write()
+
+        ncutflowSR2=len(cutflowvaluesSR2)
+        self.h_cutflowSR2=TH1F('h_cutflow_SR2_','h_cutflow_SR2_',ncutflowSR2, 0, ncutflowSR2)                          # Cutflow
+        for icutflow in range(len(cutflowvaluesSR2)):
+            self.h_cutflowSR2.GetXaxis().SetBinLabel(icutflow+1,cutflownamesSR2[icutflow])
+            self.h_cutflowSR2.SetBinContent(icutflow+1,cutflowvaluesSR2[icutflow])
+        self.h_cutflowSR2.Write()
+
+        for ireg in range(len(regionnames)):
+            ncutflowCR=len(CRcutflowvaluesSet[ireg])
+            self.h_cutflowCR=TH1F('h_cutflow_'+regionnames[ireg]+'_','h_cutflow_'+regionnames[ireg]+'_',ncutflowCR, 0, ncutflowCR)
+            for icutflow in range(len(CRcutflowvaluesSet[ireg])):
+                self.h_cutflowCR.GetXaxis().SetBinLabel(icutflow+1,CRcutnames[icutflow])
+                self.h_cutflowCR.SetBinContent(icutflow+1,CRcutflowvaluesSet[ireg][icutflow])
+            self.h_cutflowCR.Write()
+
+        nCR=len(CRvalues)
+        self.h_CRs=TH1F('h_CRs_','h_CRs_',nCR, 0, nCR)                          # CR flow
+        for iCR in range(nCR):
+            self.h_CRs.GetXaxis().SetBinLabel(iCR+1,CRnames[iCR])
+            self.h_CRs.SetBinContent(iCR+1,CRvalues[iCR])
+        self.h_CRs.Write()
+
+
+        # nreg=len(regNames)
+        # self.h_CRSum=TH1F('h_CRSum_','h_CRSum_',nreg, 0, nreg)
+        # for ireg in range(nreg):
+        #     self.h_CRSum.GetXaxis().SetBinLabel(ireg+1,regNames[ireg])
+        #     self.h_CRSum.SetBinContent(ireg+1,CRSummary[regNames[ireg]])
+        # self.h_CRSum.Write()
+
+        nreg=len(regNamesMu)
+        self.h_CRSumMu=TH1F('h_CRSumMu_','h_CRSumMu_',nreg, 0, nreg)
+        for ireg in range(nreg):
+            self.h_CRSumMu.GetXaxis().SetBinLabel(ireg+1,regNamesMu[ireg])
+            self.h_CRSumMu.SetBinContent(ireg+1,CRSummaryMu[regNamesMu[ireg]])
+        self.h_CRSumMu.Write()
+
+        nreg=len(regNamesEle)
+        self.h_CRSumEle=TH1F('h_CRSumEle_','h_CRSumEle_',nreg, 0, nreg)
+        for ireg in range(nreg):
+            self.h_CRSumEle.GetXaxis().SetBinLabel(ireg+1,regNamesEle[ireg])
+            self.h_CRSumEle.SetBinContent(ireg+1,CRSummaryEle[regNamesEle[ireg]])
+        self.h_CRSumEle.Write()
+
+        self.h_met[0].Write()
+        #self.h_met_rebin[iregime].Write()
+        for ipdf in range(2):
+            self.h_met_pdf[0][ipdf].Write()
+        for imuR in range(2):
+            self.h_met_muR[0][imuR].Write()
+        for imuF in range(2):
+            self.h_met_muF[0][imuF].Write()
+
+        #self.h_met_vs_mass.Write()
+
+        #self.h_mass.Write()
+        #self.h_csv1.Write()
+        #self.h_csv2.Write()
+        #self.h_mt.Write()
+        #self.h_dPhi.Write()
+        self.h_N_e[0].Write()
+        self.h_N_mu[0].Write()
+        self.h_N_tau[0].Write()
+        self.h_N_Pho[0].Write()
+        self.h_N_b[0].Write()
+        self.h_N_j[0].Write()
+        #self.h_mass.Write()
+
+        allquantlist=AllQuantList.getAll()
+        preselquantlist=AllQuantList.getPresel()
+        regquants=AllQuantList.getRegionQuants()
+        Histos2D=AllQuantList.getHistos2D()
+
+
+        for quant in allquantlist:
+            exec("self.h_"+quant+"[0].Write()")
+
+        for quant in preselquantlist:
+            exec("self.h_"+quant+"[0].Write()")
+
+        for quant in regquants:
+            exec("self.h_"+quant+"[0].Write()")
+
+        for quant in Histos2D:
+            exec("self.h_"+quant+"[0].Write()")
