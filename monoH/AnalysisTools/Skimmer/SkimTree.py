@@ -173,7 +173,8 @@ def AnalyzeDataSet():
     st_eleEnergy           = ROOT.std.vector('float')()
     st_eleIsPassLoose      = ROOT.std.vector('bool')()
     #st_eleIsPassMedium     = ROOT.std.vector('bool')()
-    st_eleIsPassTight      = ROOT.std.vector('bool')()
+    #st_eleIsPassTight      = ROOT.std.vector('bool')()
+    st_TightEle_pT40       = ROOT.std.vector('bool')()
    # st_eleIsPassVeto       = ROOT.std.vector('bool')()
 
     st_nPho                = array( 'L', [ 0 ] ) #ROOT.std.vector('int')()
@@ -194,7 +195,8 @@ def AnalyzeDataSet():
     st_muEnergy            = ROOT.std.vector('float')()
     st_isLooseMuon         = ROOT.std.vector('bool')()
    # st_isMediumMuon        = ROOT.std.vector('bool')()
-    st_isTightMuon         = ROOT.std.vector('bool')()
+    #st_isTightMuon         = ROOT.std.vector('bool')()
+    st_isoTightMuon_pT20   = ROOT.std.vector('bool')()
     #st_muChHadIso          = ROOT.std.vector('float')()
     #st_muNeHadIso          = ROOT.std.vector('float')()
     #st_muGamIso            = ROOT.std.vector('float')()
@@ -336,7 +338,8 @@ def AnalyzeDataSet():
     outTree.Branch( 'st_elePz',st_elePz)
     outTree.Branch( 'st_eleEnergy',st_eleEnergy)
     #outTree.Branch( 'st_eleIsPassMedium', st_eleIsPassMedium)#, 'st_eleIsPassMedium/O' )
-    outTree.Branch( 'st_eleIsPassTight', st_eleIsPassTight)#, 'st_eleIsPassTight/O' )
+    #outTree.Branch( 'st_eleIsPassTight', st_eleIsPassTight)#, 'st_eleIsPassTight/O' )
+    outTree.Branch( 'st_TightEle_pT40',st_TightEle_pT40)
 
     outTree.Branch( 'st_nPho',st_nPho , 'st_nPho/L')
     outTree.Branch( 'st_phoP4',st_phoP4 )
@@ -356,7 +359,8 @@ def AnalyzeDataSet():
     outTree.Branch( 'st_muEnergy',st_muEnergy )
 
     #outTree.Branch( 'st_isMediumMuon', st_isMediumMuon)#, 'st_isMediumMuon/O' )
-    outTree.Branch( 'st_isTightMuon', st_isTightMuon)#, 'st_isTightMuon/O' )
+    #outTree.Branch( 'st_isTightMuon', st_isTightMuon)#, 'st_isTightMuon/O' )
+    outTree.Branch( 'st_isoTightMuon_pT20',st_isoTightMuon_pT20)
     #outTree.Branch( 'st_muChHadIso', st_muChHadIso)#, 'st_muChHadIso/F')
     #outTree.Branch( 'st_muNeHadIso', st_muNeHadIso)#, 'st_muNeHadIso/F')
     #outTree.Branch( 'st_muGamIso', st_muGamIso)#, 'st_muGamIso/F')
@@ -410,7 +414,7 @@ def AnalyzeDataSet():
         NEntries=int(sys.argv[2])
         print "WARNING: Running in TEST MODE"
 
-    for ievent in range(NEntries):
+    for ievent in range(1000):#NEntries):
 
 #    print "\n*****\nWARNING: *Test run* Processing 200 events only.\n*****\n"
 #    for ievent in range(200):
@@ -638,7 +642,7 @@ def AnalyzeDataSet():
         myTaus=[]
         for itau in range(nTau):
             if (bool(isDecayModeFinding[itau])==False) or (bool(isDecayModeFindingNewDMs[itau])==False):continue  
-            if (bool(passLooseTauIso[itau])== False):continue
+            if (bool(LooseIsolationMVA[itau])== False):continue
             if isoDeltaBetaCorr[itau] > 5: continue
             if (tauP4[itau].Pt()<18.) or (abs(tauP4[itau].Eta())>2.3):continue
             if isMatch(myMuosP4,tauP4[itau],0.4) or isMatch(myElesP4,tauP4[itau],0.4):continue
@@ -655,7 +659,6 @@ def AnalyzeDataSet():
             if (bool(phoIsPassLoose[ipho]) == False): continue
             if (phoP4[ipho].Pt() < 15.) or (abs(phoP4[ipho].Eta()) > 2.5) : continue
             if isMatch(myMuosP4,phoP4[ipho],0.4) or isMatch(myElesP4,phoP4[ipho],0.4):continue
-            #print ('pass')
             myPhos.append(ipho)
             myPhosP4.append(phoP4[ipho])
 
@@ -680,15 +683,12 @@ def AnalyzeDataSet():
         #--------------------------------------------------
         #CA15jets collections
         CA15jetspassindex=[]
-        #myCA15P4=[]
-        #print ('npho',len(myPhosP4),'ele',len(myElesP4), 'muon', len(myMuosP4), 'nCA15',CA15njets)
         for ica15jet in range(CA15njets):
             j1 = CA15jetP4[ica15jet]
             if (bool(CA15PassIDLoose[ica15jet])==False):continue
             if (j1.Pt() < 200.0) or (abs(j1.Eta())>2.4):continue
             if isMatch(myMuosP4,j1,1.5) or isMatch(myElesP4,j1,1.5):continue
             CA15jetspassindex.append(ica15jet)
-        #    myCA15P4.append(CA15jetP4[ica15jet])
 
 
         #--------------------------------------------------
@@ -699,22 +699,17 @@ def AnalyzeDataSet():
             if (bool(passThinJetLooseID[ithinjet])==False):continue
             if (j1.Pt() < 30.0) or (abs(j1.Eta())>4.5):continue
             if isMatch(myMuosP4,j1,0.4) or isMatch(myElesP4,j1,0.4) or isMatch(myPhosP4,j1,0.4):continue
-            #if isMatch(myCA15P4,j1,1.5):continue
             thinjetpassindex.append(ithinjet)
 
         #----------------------------------------------------
         #deepAK4Jets
         thindCSVjetpassindex=[]
-        #ndBjets=0
-
-
         for jthinjet in range(nTHINdeepCSVJets):
             j1 = thindeepCSVjetP4[jthinjet]
 
             if (bool(thindeepCSVJetLooseID[jthinjet])==False):continue
             if (j1.Pt() < 30.0) or (abs(j1.Eta())>4.5):continue
             if isMatch(myMuosP4,j1,0.4) or isMatch(myElesP4,j1,0.4) or isMatch(myPhosP4,j1,0.4):continue
-            #if isMatch(myCA15P4,j1,1.5):continue
             thindCSVjetpassindex.append(jthinjet)
 
 # ----------------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -724,8 +719,6 @@ def AnalyzeDataSet():
         st_runId[0]             = long(run)
         st_lumiSection[0]       = lumi
         st_eventId[0]           = event
-#        print '-----------'+str(st_runId)+", "+str(st_lumiSection)+", "+str(st_eventId)
-
         st_pfMetCorrPt[0]       = pfMet
         st_pfMetCorrPhi[0]      = pfMetPhi
         st_isData[0]            = isData
@@ -790,7 +783,9 @@ def AnalyzeDataSet():
         st_eleEnergy.clear()
 
        # st_eleIsPassMedium.clear()
-        st_eleIsPassTight.clear()
+        #st_eleIsPassTight.clear()
+        st_TightEle_pT40.clear()
+
 
 
         st_muP4.clear()
@@ -799,7 +794,8 @@ def AnalyzeDataSet():
         st_muPz.clear()
         st_muEnergy.clear()
 
-        st_isTightMuon.clear()
+        #st_isTightMuon.clear()
+        st_isoTightMuon_pT20.clear()
         #st_isMediumMuon.clear()
         #st_muChHadIso.clear()
         #st_muNeHadIso.clear()
@@ -890,8 +886,6 @@ def AnalyzeDataSet():
 
             st_CA15SDmass_corr.push_back(CA15SDmass[ica15]*SDM_wieght)
             st_CA15Puppi_doublebtag.push_back(CA15Puppi_doublebtag[ica15])
-            #st_CA15PuppiECF_2_3_10.push_back(CA15PuppiECF_2_3_10[ica15])
-            #st_CA15PuppiECF_1_2_10.push_back(CA15PuppiECF_1_2_10[ica15])
             st_CA15N2b1.push_back(N2)
             st_CA15PassIDTight.push_back(bool(CA15PassIDTight[ica15]))
         ''''
@@ -911,9 +905,10 @@ def AnalyzeDataSet():
             st_elePy.push_back(eleP4[iele].Py())
             st_elePz.push_back(eleP4[iele].Pz())
             st_eleEnergy.push_back(eleP4[iele].E())
-
-            #st_eleIsPassMedium.push_back(bool(eleIsPassMedium[iele]))
-            st_eleIsPassTight.push_back(bool(eleIsPassTight[iele]))
+            #st_eleIsPassTight.push_back(bool(eleIsPassTight[iele]))
+            if eleP4[iele].Pt() > 40. and abs(eleP4[iele].Pt()) < 2.4:
+                st_TightEle_pT40.push_back(bool(eleIsPassTight[iele]))
+            else:st_TightEle_pT40.push_back(False)
 
         st_nMu[0] = len(myMuos)
         for imu in myMuos:
@@ -924,13 +919,11 @@ def AnalyzeDataSet():
             st_muPz.push_back(muP4[imu].Pz())
             st_muEnergy.push_back(muP4[imu].E())
 
-            st_isTightMuon.push_back(bool(isTightMuon[imu]))
-            #st_isMediumMuon.push_back(bool(isMediumMuon[imu]))
-            #st_muChHadIso.push_back(muChHadIso[imu])
-            #st_muNeHadIso.push_back(muNeHadIso[imu])
-            #st_muGamIso.push_back(muGamIso[imu])
-            #st_muPUPt.push_back(muPUPt[imu])
-            st_muIso.push_back(relPFIso)
+            #st_isTightMuon.push_back(bool(isTightMuon[imu]))
+	    if muP4[imu].Pt() > 20.0 and relPFIso < 0.15:
+                st_isoTightMuon_pT20.push_back(bool(isTightMuon[imu]))
+	    else: st_isoTightMuon_pT20.push_back(False)
+            #st_muIso.push_back(relPFIso)
 
         st_HPSTau_n[0] = len(myTaus)
         for itau in myTaus:
@@ -1164,12 +1157,9 @@ def DeltaR(p4_1, p4_2):
 
 def isMatch(P4Coll, objP4, cut):
     match=False
-   # print ('P4Coll:  ', len(P4Coll))
     for ojb in range(len(P4Coll)):
-    #    print ('DR:  ', DeltaR(P4Coll[ojb],objP4))
 	if DeltaR(P4Coll[ojb],objP4) < cut: match=True
         break
-    #print ('match:  ',match)
     return match
 
 
