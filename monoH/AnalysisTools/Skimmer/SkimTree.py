@@ -906,7 +906,7 @@ def AnalyzeDataSet():
             st_elePz.push_back(eleP4[iele].Pz())
             st_eleEnergy.push_back(eleP4[iele].E())
             #st_eleIsPassTight.push_back(bool(eleIsPassTight[iele]))
-            if eleP4[iele].Pt() > 40. and abs(eleP4[iele].Pt()) < 2.4:
+            if eleP4[iele].Pt() > 40. and abs(eleP4[iele].Eta()) < 2.4:
                 st_TightEle_pT40.push_back(bool(eleIsPassTight[iele]))
             else:st_TightEle_pT40.push_back(False)
 
