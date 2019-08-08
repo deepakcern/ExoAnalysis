@@ -46,4 +46,4 @@ print (pT_range)
 mat=np.matrix(values)
 #
 # print (mat)
-np.savetxt("electron_Reco_SFs_egammaEffi_txt_EGM2D.txt", mat)
+np.savetxt("electron_Trigger_eleTrig.txt", mat)
