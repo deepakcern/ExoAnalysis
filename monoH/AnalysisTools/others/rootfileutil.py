@@ -52,22 +52,16 @@ def getSampleDic(path,step='st'):
 
 	newPath="Filelist"+"_"+filepref
 	sampleDic={}
-        #print ('newPath',newPath)
 	files = glob(newPath+'/*.txt')
-        #print ("files in new path",files)
 	os.system('mkdir tempDir')
 	for ifile in files:
 		fname=ifile.split('/')[-1][:-9]
-		#print ("newFile",newPath)
 		pointFile=newPath+'/'+fname
-                #print ("pointFile",pointFile)
 		os.system('cat '+pointFile+'*'+' '+'>'+'tempDir/'+fname+'.txt')
 		
 	newFiles=glob('tempDir/*.txt')
-	#print newFiles
 	for ifile in newFiles:
 		key=ifile.split('/')[-1].replace('.txt','')
-		#print key
 		fin=open(ifile,'r')
 		rootFiles = filter(None, (line.rstrip() for line in fin))
 		sampleDic[key]=[rf for rf in rootFiles]
