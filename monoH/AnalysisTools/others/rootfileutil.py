@@ -1,5 +1,5 @@
 import os,sys
-
+from glob import glob
 
 def getSampleDic(path,step='st'):
 	if step=='st':isCrab=False
@@ -24,11 +24,9 @@ def getSampleDic(path,step='st'):
 			fname=line.split()[-1]
 		else:
 			fname=""
-
 		if fname.endswith(".root") and not fileopen:
 			folder=pref+lineminus2[:-2]+"/"
 			if 'failed' in lineminus2 or lineminus2.split("/")[-1].strip()=="failed:" or lineminus2.split("/")[-1].strip()=="log:": failedfile=True
-
 			if not failedfile:
 				if isCrab:
 					realname=lineminus2.split("/")[-3]+"_"+lineminus2.split("/")[-1][:-2]
@@ -52,26 +50,36 @@ def getSampleDic(path,step='st'):
 
 	f.close()
 
-	newPath=path+'/'+"Filelist"+"_"+filepref
+	newPath="Filelist"+"_"+filepref
 	sampleDic={}
+        #print ('newPath',newPath)
 	files = glob(newPath+'/*.txt')
+        #print ("files in new path",files)
 	os.system('mkdir tempDir')
 	for ifile in files:
 		fname=ifile.split('/')[-1][:-9]
-		#print newPath[:-5]
-		pointFile=newPath[:-5]+fname
+		#print ("newFile",newPath)
+		pointFile=newPath+'/'+fname
+                #print ("pointFile",pointFile)
 		os.system('cat '+pointFile+'*'+' '+'>'+'tempDir/'+fname+'.txt')
 		
 	newFiles=glob('tempDir/*.txt')
 	#print newFiles
 	for ifile in newFiles:
 		key=ifile.split('/')[-1].replace('.txt','')
-		print key
+		#print key
 		fin=open(ifile,'r')
 		rootFiles = filter(None, (line.rstrip() for line in fin))
 		sampleDic[key]=[rf for rf in rootFiles]
 		
-    os.system('rm -rf tempDir')
-    os.system('rm -rf '+newPath)
+        os.system('rm -rf tempDir')
+        os.system('rm -rf '+newPath)
+        
 	return sampleDic
 
+
+
+#path='/eos/cms/store/group/phys_exotica/bbMET/2016_Skimmed_withReg_v4_looseEle/Filelist_2016_bkg'
+
+#dic=getSampleDic(path)
+#print (dic)
