@@ -414,7 +414,7 @@ def AnalyzeDataSet():
         NEntries=int(sys.argv[2])
         print "WARNING: Running in TEST MODE"
 
-    for ievent in range(1000):#NEntries):
+    for ievent in range(NEntries):
 
 #    print "\n*****\nWARNING: *Test run* Processing 200 events only.\n*****\n"
 #    for ievent in range(200):
