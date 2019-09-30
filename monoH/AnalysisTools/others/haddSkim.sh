@@ -1,5 +1,5 @@
-path='/'
-outputPath='/eos/cms/store/group/phys_exotica/bbMET/2017_skimmedFiles/V0/MC_USCM_25Sep/'
+path='/eos/cms/store/group/phys_exotica/bbMET/2017_skimmedFiles/V0/MC_USCM_25Sep'
+outputPath='merged_MC/'
 
 hadd "$outputPath"crab_ggZH_HToBB_ZToLL_M125_13TeV_powheg_pythia8.root "$path"crab_ggZH_HToBB_ZToLL_M125_13TeV_powheg_pythia8*
 hadd "$outputPath"crab_ggZH_HToBB_ZToNuNu_M125_13TeV_powheg_pythia8.root "$path"crab_ggZH_HToBB_ZToNuNu_M125_13TeV_powheg_pythia8*
