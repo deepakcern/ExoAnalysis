@@ -11,6 +11,7 @@ parser = optparse.OptionParser(usage)
 
 parser.add_option("-d", "--data", dest="datasetname")
 parser.add_option("-s", "--sr", action="store_true", dest="plotSRs")
+parser.add_option("-b", "--sb", action="store_true", dest="plotSBand")
 parser.add_option("-m", "--mu", action="store_true", dest="plotMuRegs")
 parser.add_option("-e", "--ele", action="store_true", dest="plotEleRegs")
 parser.add_option("-p", "--pho", action="store_true", dest="plotPhoRegs")
@@ -23,6 +24,11 @@ if options.plotSRs==None:
     makeSRplots = False
 else:
     makeSRplots = options.plotSRs
+
+if options.plotSBand==None:
+    makeSBandplots = False
+else:
+    makeSBandplots = options.plotSBand
 
 if options.plotMuRegs==None:
     makeMuCRplots = False
@@ -67,7 +73,7 @@ os.system('mkdir -p'+' '+str(datestr)+'/monoHPdf')
 os.system('mkdir -p'+' '+str(datestr)+'/monoHROOT')
 
 #path='/Users/dekumar/MEGA/Fullwork/2017_Plotting/rootFiles_Oct5'
-path='/Users/dekumar/MEGA/Fullwork/2017_Plotting/Files_ZCR'
+path='/Users/dekumar/MEGA/Fullwork/2017_Plotting/rootFiles_test_Limit' #rootFiles_SBand_v4'
 #path='/home/deepak/MEGA/Fullwork/2017_Plotting/rootFiles'
 #path='/Users/dekumar/Desktop/test/bkg_data'
 #os.system("ls "+path+" | cat > samplelist.txt")
@@ -155,9 +161,9 @@ def makeplot(loc,hist,titleX,XMIN,XMAX,Rebin,ISLOG,NORATIOPLOT,reg,varBin):
 
     if '_sr2' in hist:
         histolabel="#splitline{monoHbb}{boosted}"
-    elif '2mu2b' in hist:
+    elif 'Zmumu' in hist:
         histolabel="Dimuon CR"
-    elif '2e2b' in hist:
+    elif 'Zee' in hist:
         histolabel="Dielectron CR"
     elif 'Wmu' in hist and 'TopWmu' not in hist:
         histolabel="W CR (#mu)"
@@ -173,8 +179,15 @@ def makeplot(loc,hist,titleX,XMIN,XMAX,Rebin,ISLOG,NORATIOPLOT,reg,varBin):
     elif 'TopWmu' in hist:
         histolabel="t#bar{t} + W CR (#mu)"
         # histolabel="t#bar{t} CR (e+#mu)"
+
+    elif 'SBand' in hist:
+        histolabel="Side Band"
+
+    elif 'SR' in hist:
+        histolabel="SR"
+
     else:
-        histolabel="testing"
+        histolabel="testing region"
 
     xsec=1.0
     norm = 1.0
@@ -196,7 +209,7 @@ def makeplot(loc,hist,titleX,XMIN,XMAX,Rebin,ISLOG,NORATIOPLOT,reg,varBin):
     count=0
     for file in files.readlines()[:]:
         myFile=path+'/'+file.rstrip()
-        print ('running for file',myFile)
+        #print ('running for file',myFile)
         print ('histName',hist)
         Str=str(count)
         exec("f"+Str+"=ROOT.TFile(myFile,'READ')",locals(), globals())
@@ -233,6 +246,7 @@ def makeplot(loc,hist,titleX,XMIN,XMAX,Rebin,ISLOG,NORATIOPLOT,reg,varBin):
             # print ('xsec', xsec)
             if (total_events > 0): normlisation=(xsec*lumi2016)/(total_events)
             else: normlisation=0
+            # print 'integral before scaling',
             h_temp.Scale(normlisation)
             if isrebin:
                 h_temp2=setHistStyle(h_temp,hist)
@@ -494,17 +508,26 @@ def makeplot(loc,hist,titleX,XMIN,XMAX,Rebin,ISLOG,NORATIOPLOT,reg,varBin):
     QCDCount      =   QCD.Integral();
     SMHCount      =   SMH.Integral();
 
-    '''
-    if (SMHCount > 0 ):    hs.Add(SMH,"hist");
-    if (GJetsCount > 0):   hs.Add(GJets,"hist");
-    if (VVCount > 0):      hs.Add(DIBOSON,"hist");
-    if (QCDCount > 0):     hs.Add(QCD,"hist");
-    if (STopCount > 0):    hs.Add(STop,"hist");
-    if (TTCount > 0):      hs.Add(Top,"hist");
-    if (WJetsCount > 0):   hs.Add(WJets,"hist");
-    if (ZJetsCount > 0):   hs.Add(ZJets,"hist");
-    if (DYJetsCount > 0):  hs.Add(DYJets,"hist");
-    '''
+    print ('=============Yeild=================')
+    print ('ZJetsCount: ',ZJetsCount)
+    print ('DYJetsCount: ',DYJetsCount)
+    print ('WJetsCount: ',WJetsCount)
+    print ('STopCount: ',STopCount)
+    print ('GJetsCount: ',GJetsCount)
+    print ('TTCount: ',TTCount)
+    print ('VVCount: ',VVCount)
+    print ('QCDCount: ',QCDCount)
+    print ('SMHCount: ',SMHCount)
+    # if (SMHCount > 0 ):    hs.Add(SMH,"hist");
+    # if (GJetsCount > 0):   hs.Add(GJets,"hist");
+    # if (VVCount > 0):      hs.Add(DIBOSON,"hist");
+    # if (QCDCount > 0):     hs.Add(QCD,"hist");
+    # if (STopCount > 0):    hs.Add(STop,"hist");
+    # if (TTCount > 0):      hs.Add(Top,"hist");
+    # if (WJetsCount > 0):   hs.Add(WJets,"hist");
+    # if (ZJetsCount > 0):   hs.Add(ZJets,"hist");
+    # if (DYJetsCount > 0):  hs.Add(DYJets,"hist");
+
 
     if (SMHCount > 0 ):    hs.Add(SMH,"hist");
     if (QCDCount > 0):     hs.Add(QCD,"hist");
@@ -525,7 +548,7 @@ def makeplot(loc,hist,titleX,XMIN,XMAX,Rebin,ISLOG,NORATIOPLOT,reg,varBin):
         hasNoEvents=True
         print ('No events found! for '+hist+'\n')
 
-
+    if makeSRplots: h_data = Stackhist.Clone()
 
 # =====================histogram for systematic/ statistical uncertainty ========================
 
@@ -592,7 +615,7 @@ def makeplot(loc,hist,titleX,XMIN,XMAX,Rebin,ISLOG,NORATIOPLOT,reg,varBin):
         hs.SetMaximum(maxi * 1.35)
         hs.SetMinimum(0)
 ##=============================== hs setting section =====================
-#
+
     if (not hasNoEvents):
         hs.GetXaxis().SetNdivisions(508)
         if(NORATIOPLOT):
@@ -654,7 +677,7 @@ def makeplot(loc,hist,titleX,XMIN,XMAX,Rebin,ISLOG,NORATIOPLOT,reg,varBin):
     t2c =  ROOT.TLatex(0.10,0.97,latexPreCMSname);
     t2c.SetTextSize(0.045)
 
-    t2a =  ROOT.TLatex(0.7,0.97,'35.5 fb^{-1} (13TeV )');
+    t2a =  ROOT.TLatex(0.7,0.97,'41.0 fb^{-1} (13TeV )');
     t2a.SetTextSize(0.040);
 
     t2b = ROOT.TLatex(0.22,0.88,'');
@@ -734,7 +757,8 @@ def makeplot(loc,hist,titleX,XMIN,XMAX,Rebin,ISLOG,NORATIOPLOT,reg,varBin):
         DataMC.GetYaxis().SetLabelFont(42);
 
 
-    c1_1 = ROOT.TPad("c1_1", "newpad",0,0.00,1,0.3);
+    c1_1 = ROOT.TPad("c1_1", "newpad",0,0.05,1,0.3);
+
     if (not NORATIOPLOT): c1_1.Draw();
     c1_1.cd();
     c1_1.Range(-7.862408,-629.6193,53.07125,486.5489);
@@ -773,6 +797,7 @@ def makeplot(loc,hist,titleX,XMIN,XMAX,Rebin,ISLOG,NORATIOPLOT,reg,varBin):
         line0.Draw("same")
         c1_1.SetGridy()
         ratioleg.Draw("same")
+
     c12.Draw()
 
     outputshapefilename=str(hist)
@@ -784,11 +809,14 @@ def makeplot(loc,hist,titleX,XMIN,XMAX,Rebin,ISLOG,NORATIOPLOT,reg,varBin):
         c12.SaveAs(str(datestr)+'/monoHPdf/'+str(outputshapefilename)+'log.pdf')
         c12.SaveAs(str(datestr)+'/monoHPng/'+str(outputshapefilename)+'log.png')
 
+    #
 
     rootFile=str(datestr)+'/monoHROOT/'+str(outputshapefilename)+'.root'
     print (rootFile)
+
     fshape = ROOT.TFile(rootFile,"RECREATE")
     fshape.cd()
+    print ('bkgSum',Stackhist.Integral(),'QCD',QCD.Integral())
     Stackhist.SetNameTitle("bkgSum","bkgSum")
     Stackhist.Write()
     DIBOSON.SetNameTitle("DIBOSON","DIBOSON");
@@ -809,12 +837,17 @@ def makeplot(loc,hist,titleX,XMIN,XMAX,Rebin,ISLOG,NORATIOPLOT,reg,varBin):
     WJets.Write();
     DYJets.SetNameTitle("DYJets","DYJets");
     DYJets.Write();
+    # if makeSRplots:
+    #     data_obs=Stackhist.Clone()
+    #     data_obs.SetNameTitle("data_obs","data_obs");
+    # else:
     data_obs=h_data
     data_obs.SetNameTitle("data_obs","data_obs");
+
     data_obs.Write();
     fshape.Write();
     fshape.Close();
-
+    #'''
 
     # except Exception as e:
     #     print (e)
@@ -838,10 +871,16 @@ PUreg=[]
 
 
 if makeMuCRplots:
-    regions+=['Topmu','Wmu','TopWmu']
+    regions+=['Topmu','Wmu','TopWmu','Zmumu']
     PUreg+=['mu_']
 if makeEleCRplots:
-    regions+=['Tope','We','TopWe']
+    regions+=['Tope','We','TopWe','Zee']
+
+if makeSBandplots:
+    regions+=['SBand']
+
+if makeSRplots:
+    regions+=['SR']
 '''
     PUreg+=['ele_']
 if makePhoCRplots:
@@ -853,14 +892,44 @@ if makeQCDCRplots:
 '''
 
 for reg in regions:
+    if makeSRplots:
+        #makeplot("reg_"+reg+"_min_dPhi",'h_reg_'+reg+'_min_dPhi','#dPhi(ak4,met)',0,4,1,0,0,'reg',varBin=False)#FJetCSV
+        # makeplot("reg_"+reg+"_nJets",'h_reg_'+reg+'_nJets','nJets',0,5,1,0,0,'reg',varBin=False)
+        # makeplot("reg_"+reg+"_FJetPt",'h_reg_'+reg+'_FJetPt','FATJET p_{T} (GeV)',200.,1000.,1,1,0,'reg',varBin=False)
+        # makeplot("reg_"+reg+"_FJetEta",'h_reg_'+reg+'_FJetEta','FATJET #eta',-2.5,2.5,1,0,0,'reg',varBin=False)
+        # makeplot("reg_"+reg+"_FJetPhi",'h_reg_'+reg+'_FJetPhi','FATJET #phi',-3.14,3.14,1,0,0,'reg',varBin=False)
+        # makeplot("reg_"+reg+"_FJetMass",'h_reg_'+reg+'_FJetMass','SDMass',100,150,1,0,0,'reg',varBin=False)
+        makeplot("reg_"+reg+"_MET",'h_reg_'+reg+'_MET','MET (GeV)',100.,700.,1,1,0,'reg',varBin=False)
+
     makeplot("reg_"+reg+"_Recoil",'h_reg_'+reg+'_Recoil','Hadronic Recoil (GeV)',200.,1000.,1,1,0,'reg',varBin=False)
 
     makeplot("reg_"+reg+"_FJetPt",'h_reg_'+reg+'_FJetPt','FATJET p_{T} (GeV)',200.,1000.,1,1,0,'reg',varBin=False)
     makeplot("reg_"+reg+"_FJetEta",'h_reg_'+reg+'_FJetEta','FATJET #eta',-2.5,2.5,1,0,0,'reg',varBin=False)
     makeplot("reg_"+reg+"_FJetPhi",'h_reg_'+reg+'_FJetPhi','FATJET #phi',-3.14,3.14,1,0,0,'reg',varBin=False)
-
+    makeplot("reg_"+reg+"_FJetMass",'h_reg_'+reg+'_FJetMass','SDMass',100,150,1,0,0,'reg',varBin=False)
     # makeplot("reg_"+reg+"_Jet1Pt",'h_reg_'+reg+'_Jet1Pt','Jet1 p_{T}',200.,1000.,1,1,0,'reg',varBin=False)
     # makeplot("reg_"+reg+"_Jet1Eta",'h_reg_'+reg+'_Jet1Eta','Jet1 #eta',-2.5,2.5,1,0,0,'reg',varBin=False)
     # makeplot("reg_"+reg+"_Jet1Phi",'h_reg_'+reg+'_Jet1Phi','Jet1 #phi',-3.14,3.14,1,0,0,'reg',varBin=False)
-    #
+    makeplot("reg_"+reg+"_nJets",'h_reg_'+reg+'_nJets','nJets',0,5,1,0,0,'reg',varBin=False)
+
     makeplot("reg_"+reg+"_lep1_pT",'h_reg_'+reg+'_lep1_pT','lepton1 p_{T}',0,500,1,1,0,'reg',varBin=False)
+    makeplot("reg_"+reg+"_lep1_eta",'h_reg_'+reg+'_lep1_eta','lepton1 #eta',-2.5,2.5,1,0,0,'reg',varBin=False)
+    makeplot("reg_"+reg+"_lep1_Phi",'h_reg_'+reg+'_lep1_Phi','lepton1 #phi',-3.14,3.14,1,0,0,'reg',varBin=False)
+    makeplot("reg_"+reg+"_FJetCSV",'h_reg_'+reg+'_FJetCSV','deep double B tagger',0,1,1,0,0,'reg',varBin=False)#FJetCSV
+
+    # if 'Zee' in reg or 'Zmumu' in reg:
+    #     makeplot("reg_"+reg+"_Zmass",'h_reg_'+reg+'_Zmass','ZMass',60,120,1,0,0,'reg',varBin=False)
+    #     makeplot("reg_"+reg+"_ZpT",'h_reg_'+reg+'_ZpT','Z p_{T} (GeV)',0.,700.,1,1,0,'reg',varBin=False)
+    #     makeplot("reg_"+reg+"_lep2_pT",'h_reg_'+reg+'_lep2_pT','lepton2 p_{T}',0,500,1,1,0,'reg',varBin=False)
+    #     makeplot("reg_"+reg+"_lep2_eta",'h_reg_'+reg+'_lep2_eta','lepton2 #eta',-2.5,2.5,1,0,0,'reg',varBin=False)
+    #     makeplot("reg_"+reg+"_lep2_Phi",'h_reg_'+reg+'_lep2_Phi','lepton2 #phi',-3.14,3.14,1,0,0,'reg',varBin=False)
+
+    if 'SBand' in reg:
+        # makeplot("reg_"+reg+"_min_dPhi",'h_reg_'+reg+'_min_dPhi','#dPhi(ak4,met)',0,4,1,1,0,'reg',varBin=False)#FJetCSV
+        # makeplot("reg_"+reg+"_FJetMass",'h_reg_'+reg+'_FJetMass','SDMass',0,350,1,0,0,'reg',varBin=False)#FJetCSV
+        # makeplot("reg_"+reg+"_FJetCSV",'h_reg_'+reg+'_FJetCSV','deep double B tagger',0,1,1,0,0,'reg',varBin=False)#FJetCSV
+        # makeplot("reg_"+reg+"_nJets",'h_reg_'+reg+'_nJets','nJets',0,5,1,0,0,'reg',varBin=False)
+        makeplot("reg_"+reg+"_MET",'h_reg_'+reg+'_MET','MET (GeV)',100.,700.,1,1,0,'reg',varBin=False)
+        # makeplot("reg_"+reg+"_FJetPt",'h_reg_'+reg+'_FJetPt','FATJET p_{T} (GeV)',200.,1000.,1,1,0,'reg',varBin=False)
+        # makeplot("reg_"+reg+"_FJetEta",'h_reg_'+reg+'_FJetEta','FATJET #eta',-2.5,2.5,1,0,0,'reg',varBin=False)
+        # makeplot("reg_"+reg+"_FJetPhi",'h_reg_'+reg+'_FJetPhi','FATJET #phi',-3.14,3.14,1,0,0,'reg',varBin=False)
