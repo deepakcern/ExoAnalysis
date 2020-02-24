@@ -514,10 +514,10 @@ def runbbdm(txtfile):
 		h_den_WlnuRecoil_R.Fill(WRecoil)
                 #print 'pass denominator for Res'
             # histogram for ZllRecoil 
-            if mettrigdecision and mutrigdecision and JetCond and DilepRequiredCond and lepVetoCond:
+            if mettrigdecision and leptonTrigger and JetCond and DilepRequiredCond and lepVetoCond:
 		h_num_ZllRecoil_R.Fill(ZRecoil)
                 #print 'pass numerator for Boos'
-            if mutrigdecision and JetCond and DilepRequiredCond and lepVetoCond:
+            if leptonTrigger and JetCond and DilepRequiredCond and lepVetoCond:
 		h_den_ZllRecoil_R.Fill(ZRecoil)
                 #print 'pass denominator for Boos'
 
@@ -534,9 +534,9 @@ def runbbdm(txtfile):
                 h_den_WlnuRecoil_B.Fill(WRecoil)
 
             # histogram for ZllRecoil
-            if mettrigdecision and mutrigdecision and AK8JetCond and DilepRequiredCond and lepVetoCond:
+            if mettrigdecision and leptonTrigger and AK8JetCond and DilepRequiredCond and lepVetoCond:
                 h_num_ZllRecoil_B.Fill(ZRecoil)
-            if mutrigdecision and AK8JetCond and DilepRequiredCond and lepVetoCond:
+            if leptonTrigger and AK8JetCond and DilepRequiredCond and lepVetoCond:
                 h_den_ZllRecoil_B.Fill(ZRecoil)
 
 
