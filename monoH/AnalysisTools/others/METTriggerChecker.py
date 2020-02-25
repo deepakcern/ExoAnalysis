@@ -170,13 +170,13 @@ def runbbdm(txtfile):
     h_den_WlnuRecoil_R   = TH1F("h_den_WlnuRecoil_R","",2000,0,2000)
     h_num_WlnuRecoil_R   = TH1F("h_num_WlnuRecoil_R","",2000,0,2000)
     h_den_ZllRecoil_R    = TH1F("h_den_ZllRecoil_R","",2000,0,2000)
-    h_num_ZllRecoil_R    = TH1F("h_den_ZllRecoil_R","",2000,0,2000)
+    h_num_ZllRecoil_R    = TH1F("h_num_ZllRecoil_R","",2000,0,2000)
 
 
     h_den_WlnuRecoil_B   = TH1F("h_den_WlnuRecoil_B","",2000,0,2000)
     h_num_WlnuRecoil_B   = TH1F("h_num_WlnuRecoil_B","",2000,0,2000)
     h_den_ZllRecoil_B    = TH1F("h_den_ZllRecoil_B","",2000,0,2000)
-    h_num_ZllRecoil_B    = TH1F("h_den_ZllRecoil_B","",2000,0,2000)
+    h_num_ZllRecoil_B    = TH1F("h_num_ZllRecoil_B","",2000,0,2000)
 
 
     passfilename = open("configs/outfilename.txt","w")
