@@ -8,15 +8,69 @@ from ROOT import TFile, gROOT, kBlack,TH1F
 gROOT.SetBatch(True)
 
 #CRSRPath = '/Users/dekumar/MEGA/Fullwork/2017_Plotting/22102019/monoHROOT'
-CRSRPath = '/home/deepak/MEGA/Fullwork/2017_Plotting/22102019/monoHROOT'
-#SignalPath = '/Users/dekumar/MEGA/Fullwork/2017_Plotting/rootFiles_Signal'
-SignalPath = '/home/deepak/MEGA/Fullwork/2017_Plotting/rootFiles_Signal'
+#CRSRPath = '/Users/dekumar/MEGA/Fullwork/2017_Plotting/LimitFiles/bkg'
 
-CRSRFiles = [CRSRPath+'/'+fl for fl in os.listdir(CRSRPath) if 'Recoil' in fl or 'MET' in fl]
+boosted_CRSRPath = '/afs/cern.ch/work/d/dekumar/public/monoH/monoHbbPlottingFiles/CMSSW_10_3_0/src/PlotFiles/03032020_syst_B/monoHROOT'
+Resolved_CRSRPath = '/afs/cern.ch/work/d/dekumar/public/monoH/monoHbbPlottingFiles/CMSSW_10_3_0/src/PlotFiles/03032020_syst_R/monoHROOT'
+#SignalPath = '/Users/dekumar/MEGA/Fullwork/2017_Plotting/rootFiles_Signal'
+SignalPath = '/afs/cern.ch/work/d/dekumar/public/monoH/monoHbbPlottingFiles/CMSSW_10_3_0/src/HistFiles/2017_syst_signal'
+
+CRSRFiles_boosted = [boosted_CRSRPath+'/'+fl for fl in os.listdir(boosted_CRSRPath) if 'Recoil' in fl or 'MET' in fl ]
+CRSRFiles_resolved = [Resolved_CRSRPath+'/'+fl for fl in os.listdir(Resolved_CRSRPath) if 'Recoil' in fl or 'MET' in fl]
 SignalFiles = [SignalPath+'/'+fl for fl in os.listdir(SignalPath) if '.root' in fl]
 
-os.system('rm -rf DataCardRootFiles_test')
-os.system('mkdir DataCardRootFiles_test')
+os.system('rm -rf DataCardRootFiles')
+os.system('mkdir DataCardRootFiles')
+
+def SetCanvas():
+
+    # CMS inputs
+    # -------------
+    H_ref = 1000;
+    W_ref = 1000;
+    W = W_ref
+    H  = H_ref
+
+    T = 0.08*H_ref
+    B = 0.21*H_ref
+    L = 0.12*W_ref
+    R = 0.08*W_ref
+    # --------------
+
+    c1 = TCanvas("c2","c2",0,0,2000,1500)
+    c1.SetFillColor(0)
+    c1.SetBorderMode(0)
+    c1.SetFrameFillStyle(0)
+    c1.SetFrameBorderMode(0)
+    c1.SetLeftMargin( L/W )
+    c1.SetRightMargin( R/W )
+    c1.SetTopMargin( T/H )
+    c1.SetBottomMargin( B/H )
+    c1.SetTickx(0)
+    c1.SetTicky(0)
+    c1.SetTickx(1)
+    c1.SetTicky(1)
+    c1.SetGridy()
+    c1.SetGridx()
+    #c1.SetLogy(1)
+    return c1
+
+def getLegend():
+    legend=TLegend(.10,.79,.47,.89)
+    legend.SetTextSize(0.038)
+    legend.SetFillStyle(0)
+
+    return legend
+
+
+def getLatex():
+    latex =  TLatex()
+    latex.SetNDC();
+    latex.SetTextSize(0.04);
+    latex.SetTextAlign(31);
+    latex.SetTextAlign(11);
+    return latex
+
 
 
 def setHistStyle(h_temp,newname):
@@ -28,6 +82,7 @@ def setHistStyle(h_temp,newname):
     #h_temp.SetBinContent(len(bins)-1,h_temp.GetBinContent(len(bins)-1)+h_temp.GetBinContent(len(bins))) #Add overflow bin content to last bin
     #h_temp.SetBinContent(len(bins),0.)
     #h_temp.GetXaxis().SetRangeUser(200,1000)
+    h_temp.SetBinContent(h_temp.GetXaxis().GetNbins(),h_temp.GetBinContent(h_temp.GetXaxis().GetNbins()+1)) #Add overflow bin content to last bin
     h_temp.SetMarkerColor(kBlack);
     h_temp.SetMarkerStyle(2);
     return h_temp
@@ -53,23 +108,78 @@ SRCRhistos=['bkgSum','DIBOSON','ZJets','GJets','QCD','SMH','STop','Top','WJets',
 
 bins= [200,270,345,480,1000]
 
-f=TFile("DataCardRootFiles_test/AllMETHistos.root","RECREATE")
+f=TFile("DataCardRootFiles/AllMETHistos.root","RECREATE")
 
-for infile in CRSRFiles:
-    print ('checking code for ',infile)
+for infile in CRSRFiles_boosted:
+    #print ('checking code for ',infile)
     fin       =   TFile(infile,"READ")
     rootFile  = infile.split('/')[-1]
     reg       = rootFile.split('_')[2]
-
-    if ('MET' in infile and 'SR' not in infile):continue# or ('Recoil' not in infile): continue
-    if 'TopWmu' in infile or 'TopWe' in infile:continue
+    #cat       = rootFile.split('_')[-1].replace('.root','')
+    #print ('cat',cat)
     print ('running code for ',infile)
+    syst = ''
+    if '_up.root' in infile or '_down.root' in infile:
+	laststr = infile.split('/')[-1]
+        syst    = '_'+laststr.split("_")[-2]+'_'+laststr.split("_")[-1].replace('.root','')
+
+    if ('MET' in infile and (not 'SR'  in infile)):continue# or ('Recoil' not in infile): continue
+    #if 'TopWmu' in infile or 'TopWe' in infile:continue
+   
     reg = reg.replace('Zmumu','ZMUMU').replace('Zee','ZEE').replace('Wmu','WMU').replace('We','WE').replace('Topmu','TOPMU').replace('Tope','TOPE')
 
     for hist in SRCRhistos:
         temp   = fin.Get(hist)
         hist=hist.replace('DIBOSON','diboson').replace('ZJets','zjets').replace('GJets','gjets').replace('QCD','qcd').replace('SMH','smh').replace('STop','singlet').replace('Top','tt').replace('WJets','wjets').replace('DYJets','dyjets')
-        newName   = 'monoHbb2017_B_'+reg+'_'+str(hist)
+        #if 'boosted' in cat:
+        newName   = 'monoHbb2017_B_'+reg+'_'+str(hist)+syst
+        #if 'resolved' in cat:
+        #    newName   = 'monoHbb2017_R_'+reg+'_'+str(hist)
+        #print (temp.GetXaxis().GetNbins())
+        if not syst=='' and hist=='data_obs':continue
+
+        if temp.Integral() == 0.0:
+            HISTNAME=newName
+            temp = TH1F(newName, newName, 4, array('d',bins))
+            # print ('=================',hist)
+            # print ('=================',temp.GetXaxis().GetNbins())
+            for bin in range(4):
+                temp.SetBinContent(bin+1,0.00001)
+
+        myHist = setHistStyle(temp,newName)
+        f.cd()
+        myHist.Write()
+
+
+
+
+for infile in CRSRFiles_resolved:
+    #print ('checking code for ',infile)
+    fin       =   TFile(infile,"READ")
+    rootFile  = infile.split('/')[-1]
+    reg       = rootFile.split('_')[2]
+    #cat       = rootFile.split('_')[-1].replace('.root','')
+    #print ('cat',cat)
+
+    if ('MET' in infile and (not 'SR' in infile)):continue# or ('Recoil' not in infile): continue
+    #if 'TopWmu' in infile or 'TopWe' in infile:continue
+    print ('running code for ',infile)
+    syst = ''
+    if '_up.root' in infile or '_down.root' in infile:
+        laststr = infile.split('/')[-1]
+        syst    = '_'+laststr.split("_")[-2]+'_'+laststr.split("_")[-1].replace('.root','')
+
+    reg = reg.replace('Zmumu','ZMUMU').replace('Zee','ZEE').replace('Wmu','WMU').replace('We','WE').replace('Topmu','TOPMU').replace('Tope','TOPE')
+
+    for hist in SRCRhistos:
+        temp   = fin.Get(hist)
+        hist=hist.replace('DIBOSON','diboson').replace('ZJets','zjets').replace('GJets','gjets').replace('QCD','qcd').replace('SMH','smh').replace('STop','singlet').replace('Top','tt').replace('WJets','wjets').replace('DYJets','dyjets')
+        # if 'boosted' in cat:
+        #     newName   = 'monoHbb2017_B_'+reg+'_'+str(hist)
+        # if 'resolved' in cat:
+        newName   = 'monoHbb2017_R_'+reg+'_'+str(hist)+syst
+        #print (temp.GetXaxis().GetNbins())
+        if not syst=='' and hist=='data_obs':continue
 
         if temp.Integral() == 0.0:
             HISTNAME=newName
@@ -99,19 +209,25 @@ for infile in SignalFiles:
 
     sampStr = 'ma_'+ma+'_mA_'+mA
     CS = CSList[sampStr]
-    temp = fin.Get('h_reg_SR_MET')
+    for hst in ["boosted","resolved"]:
+        temp = fin.Get('h_reg_SR_MET'+"_"+hst)
 
-    if  temp.Integral() == 0.0:
-        for bin in range(temp.GetXaxis().GetNbins()):
-            temp.SetBinContent(bin,0.00001)
+        if  temp.Integral() == 0.0:
+            for bin in range(temp.GetXaxis().GetNbins()):
+                temp.SetBinContent(bin,0.00001)
 
-    h_total = fin.Get('h_total_mcweight')
-    totalEvents = h_total.Integral()
-    temp.Scale((lumi*CS*BR)/(totalEvents))
-    samp = 'monoHbb2017_B_SR_ggF_sp_0p35_tb_1p0_mXd_10_mA_'+mA+'_ma_'+ma
-    myHist = setHistStyle(temp,samp)
-    f.cd()
-    myHist.Write()
+        h_total = fin.Get('h_total_mcweight')
+        totalEvents = h_total.Integral()
+        temp.Scale((lumi*CS*BR)/(totalEvents))
+        if hst=="boosted":
+            cat="B"
+        if hst=="resolved":
+            cat="R"
+
+        samp = 'monoHbb2017_'+cat+'_SR_ggF_sp_0p35_tb_1p0_mXd_10_mA_'+mA+'_ma_'+ma
+        myHist = setHistStyle(temp,samp)
+        f.cd()
+        myHist.Write()
 
 
 f.Close()
