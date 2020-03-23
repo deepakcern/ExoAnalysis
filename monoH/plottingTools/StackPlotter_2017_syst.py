@@ -87,7 +87,7 @@ os.system('mkdir -p'+' '+str(datestr)+'/monoHROOT')
 #path='/afs/cern.ch/work/d/dekumar/public/monoH/monoHbbPlottingFiles/CMSSW_10_3_0/src/HistFiles/V0_fixedJetID_V2_R'
 #path='/afs/cern.ch/work/d/dekumar/public/monoH/monoHbbPlottingFiles/CMSSW_10_3_0/src/HistFiles/V0_fixedJetID_V2'
 
-path='/afs/cern.ch/work/d/dekumar/public/monoH/monoHbbPlottingFiles/CMSSW_10_3_0/src/HistFiles/2017_syst_R'
+path='/afs/cern.ch/work/d/dekumar/public/monoH/monoHbbPlottingFiles/CMSSW_10_3_0/src/HistFiles/2017_syst_withCutFlow_v2_MWP_B_merged'
 
 #path='V0_fixedJetID_V1'
 #path='/home/deepak/MEGA/Fullwork/2017_Plotting/rootFiles'
@@ -99,9 +99,9 @@ lumi2016 = 41.5 * 1000
 boost = True
 drawSig = False
 #/afs/cern.ch/work/d/dekumar/public/monoH/Analyzer/CMSSW_10_3_0/src/ExoPieProducer/ExoPieAnalyzer/Final_OutPutSignal_24Nov
-file1=ROOT.TFile('/afs/cern.ch/work/d/dekumar/public/monoH/monoHbbPlottingFiles/CMSSW_10_3_0/src/HistFiles/2017_syst_signal/Output_EXO-ggToXdXdHToBB_sinp_0p35_tanb_1p0_mXd_10_MH3_300_MH4_150_MH2_300_MHC_300_CP3Tune_13TeV.root','READ')
-file2=ROOT.TFile('/afs/cern.ch/work/d/dekumar/public/monoH/monoHbbPlottingFiles/CMSSW_10_3_0/src/HistFiles/2017_syst_signal/Output_EXO-ggToXdXdHToBB_sinp_0p35_tanb_1p0_mXd_10_MH3_600_MH4_150_MH2_600_MHC_600_CP3Tune_13TeV.root','READ')
-file3=ROOT.TFile('/afs/cern.ch/work/d/dekumar/public/monoH/monoHbbPlottingFiles/CMSSW_10_3_0/src/HistFiles/2017_syst_signal/Output_EXO-ggToXdXdHToBB_sinp_0p35_tanb_1p0_mXd_10_MH3_1600_MH4_150_MH2_1600_MHC_1600_CP3Tune_13TeV.root','RAED')
+file1=ROOT.TFile('/afs/cern.ch/work/d/dekumar/public/monoH/monoHbbPlottingFiles/CMSSW_10_3_0/src/HistFiles/2017_syst_signal_v2_MWP/Output_EXO-ggToXdXdHToBB_sinp_0p35_tanb_1p0_mXd_10_MH3_300_MH4_150_MH2_300_MHC_300_CP3Tune_13TeV_0000_0.root','READ')
+file2=ROOT.TFile('/afs/cern.ch/work/d/dekumar/public/monoH/monoHbbPlottingFiles/CMSSW_10_3_0/src/HistFiles/2017_syst_signal_v2_MWP/Output_EXO-ggToXdXdHToBB_sinp_0p35_tanb_1p0_mXd_10_MH3_600_MH4_150_MH2_600_MHC_600_CP3Tune_13TeV_0000_0.root','READ')
+file3=ROOT.TFile('/afs/cern.ch/work/d/dekumar/public/monoH/monoHbbPlottingFiles/CMSSW_10_3_0/src/HistFiles/2017_syst_signal_v2_MWP/Output_EXO-ggToXdXdHToBB_sinp_0p35_tanb_1p0_mXd_10_MH3_1600_MH4_150_MH2_1600_MHC_1600_CP3Tune_13TeV_0000_0.root','RAED')
 
 total1=file1.Get('h_total_mcweight')
 total2=file2.Get('h_total_mcweight')

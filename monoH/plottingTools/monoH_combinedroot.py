@@ -10,10 +10,10 @@ gROOT.SetBatch(True)
 #CRSRPath = '/Users/dekumar/MEGA/Fullwork/2017_Plotting/22102019/monoHROOT'
 #CRSRPath = '/Users/dekumar/MEGA/Fullwork/2017_Plotting/LimitFiles/bkg'
 
-boosted_CRSRPath = '/afs/cern.ch/work/d/dekumar/public/monoH/monoHbbPlottingFiles/CMSSW_10_3_0/src/PlotFiles/03032020_syst_B/monoHROOT'
-Resolved_CRSRPath = '/afs/cern.ch/work/d/dekumar/public/monoH/monoHbbPlottingFiles/CMSSW_10_3_0/src/PlotFiles/03032020_syst_R/monoHROOT'
+boosted_CRSRPath = '/afs/cern.ch/work/d/dekumar/public/monoH/monoHbbPlottingFiles/CMSSW_10_3_0/src/PlotFiles/16032020_syst_v3_B/monoHROOT'
+Resolved_CRSRPath = '/afs/cern.ch/work/d/dekumar/public/monoH/monoHbbPlottingFiles/CMSSW_10_3_0/src/PlotFiles/16032020_syst_v3_R/monoHROOT'
 #SignalPath = '/Users/dekumar/MEGA/Fullwork/2017_Plotting/rootFiles_Signal'
-SignalPath = '/afs/cern.ch/work/d/dekumar/public/monoH/monoHbbPlottingFiles/CMSSW_10_3_0/src/HistFiles/2017_syst_signal'
+SignalPath = '/afs/cern.ch/work/d/dekumar/public/monoH/monoHbbPlottingFiles/CMSSW_10_3_0/src/HistFiles/2017_syst_signal_withCutFlow'
 
 CRSRFiles_boosted = [boosted_CRSRPath+'/'+fl for fl in os.listdir(boosted_CRSRPath) if 'Recoil' in fl or 'MET' in fl ]
 CRSRFiles_resolved = [Resolved_CRSRPath+'/'+fl for fl in os.listdir(Resolved_CRSRPath) if 'Recoil' in fl or 'MET' in fl]
@@ -79,25 +79,25 @@ def setHistStyle(h_temp,newname):
     h_temp.SetName(newname)
     h_temp.SetTitle(newname)
     h_temp.SetLineWidth(1)
-    #h_temp.SetBinContent(len(bins)-1,h_temp.GetBinContent(len(bins)-1)+h_temp.GetBinContent(len(bins))) #Add overflow bin content to last bin
-    #h_temp.SetBinContent(len(bins),0.)
-    #h_temp.GetXaxis().SetRangeUser(200,1000)
-    h_temp.SetBinContent(h_temp.GetXaxis().GetNbins(),h_temp.GetBinContent(h_temp.GetXaxis().GetNbins()+1)) #Add overflow bin content to last bin
+    h_temp.SetBinContent(h_temp.GetXaxis().GetNbins(),h_temp.GetBinContent(h_temp.GetXaxis().GetNbins())+h_temp.GetBinContent(h_temp.GetXaxis().GetNbins()+1)) #Add overflow bin content to last bin
     h_temp.SetMarkerColor(kBlack);
     h_temp.SetMarkerStyle(2);
     return h_temp
 
 
-def reBin(h_temp,bins):
 
-    h_temp=h_temp.Rebin(len(bins)-1,"h_temp",array.array('d',bins))
-    #h_temp.SetBinContent(len(bins)-1,h_temp.GetBinContent(len(bins)-1)+h_temp.GetBinContent(len(bins))) #Add overflow bin content to last bin
-    #h_temp.SetBinContent(len(bins),0.)
-    # h_temp.GetXaxis().SetRangeUser(200,1000)
-    #h_temp.SetMarkerColor(kBlack);
-    #h_temp.SetMarkerStyle(2);
-    return h_temp
-
+def fillEmptyBin(hist,nBins,value):
+    trueBins = hist.GetXaxis().GetNbins()
+    if nBins>=trueBins:
+	for i in range(nBins+1):
+            if hist.GetBinError(i+1)<0:print hist.GetBinError(i+1)
+    	    if hist.GetBinContent(i+1)==0.0:           
+	        hist.SetBinContent(i+1,value)
+    else:
+        for i in range(trueBins+1):
+            if hist.GetBinContent(i+1)==0.0:
+	        hist.SetBinContent(i+1,value)
+ 
 
 CSList = {'ma_150_mA_300':1.606,'ma_150_mA_400':0.987,'ma_150_mA_500':0.5074,'ma_150_mA_600':0.2984,'ma_150_mA_1000':0.0419,'ma_150_mA_1200':0.0106,'ma_150_mA_1600':0.07525}
 
@@ -137,7 +137,9 @@ for infile in CRSRFiles_boosted:
         #    newName   = 'monoHbb2017_R_'+reg+'_'+str(hist)
         #print (temp.GetXaxis().GetNbins())
         if not syst=='' and hist=='data_obs':continue
-
+        #print 'newName',newName
+        fillEmptyBin(temp,4,0.00001)
+        '''
         if temp.Integral() == 0.0:
             HISTNAME=newName
             temp = TH1F(newName, newName, 4, array('d',bins))
@@ -145,7 +147,7 @@ for infile in CRSRFiles_boosted:
             # print ('=================',temp.GetXaxis().GetNbins())
             for bin in range(4):
                 temp.SetBinContent(bin+1,0.00001)
-
+        '''
         myHist = setHistStyle(temp,newName)
         f.cd()
         myHist.Write()
@@ -180,7 +182,8 @@ for infile in CRSRFiles_resolved:
         newName   = 'monoHbb2017_R_'+reg+'_'+str(hist)+syst
         #print (temp.GetXaxis().GetNbins())
         if not syst=='' and hist=='data_obs':continue
-
+        fillEmptyBin(temp,4,0.00001)
+        '''
         if temp.Integral() == 0.0:
             HISTNAME=newName
             temp = TH1F(newName, newName, 4, array('d',bins))
@@ -188,13 +191,13 @@ for infile in CRSRFiles_resolved:
             # print ('=================',temp.GetXaxis().GetNbins())
             for bin in range(4):
                 temp.SetBinContent(bin+1,0.00001)
-
+        '''
         myHist = setHistStyle(temp,newName)
         f.cd()
         myHist.Write()
 
 
-lumi = 41.0*1000
+lumi = 41.5*1000
 
 BR = 0.588
 
@@ -210,24 +213,29 @@ for infile in SignalFiles:
     sampStr = 'ma_'+ma+'_mA_'+mA
     CS = CSList[sampStr]
     for hst in ["boosted","resolved"]:
-        temp = fin.Get('h_reg_SR_MET'+"_"+hst)
+        for syst in ["h_reg_SR_MET","h_reg_SR_MET_btagweight_up","h_reg_SR_MET_btagweight_down","h_reg_SR_MET_ewkweight_up","h_reg_SR_MET_ewkweight_down","h_reg_SR_MET_toppTweight_up","h_reg_SR_MET_toppTweight_down","h_reg_SR_MET_metTrigweight_up","h_reg_SR_MET_metTrigweight_down","h_reg_SR_MET_puweight_down","h_reg_SR_MET_puweight_up","h_reg_SR_MET_jec_up","h_reg_SR_MET_jec_down","h_reg_SR_MET_Res_up","h_reg_SR_MET_Res_down","h_reg_SR_MET_En_up","h_reg_SR_MET_En_down"]:
+            temp = fin.Get(syst+"_"+hst)
+            print 'hist',syst+"_"+hst
 
-        if  temp.Integral() == 0.0:
-            for bin in range(temp.GetXaxis().GetNbins()):
-                temp.SetBinContent(bin,0.00001)
-
-        h_total = fin.Get('h_total_mcweight')
-        totalEvents = h_total.Integral()
-        temp.Scale((lumi*CS*BR)/(totalEvents))
-        if hst=="boosted":
-            cat="B"
-        if hst=="resolved":
-            cat="R"
-
-        samp = 'monoHbb2017_'+cat+'_SR_ggF_sp_0p35_tb_1p0_mXd_10_mA_'+mA+'_ma_'+ma
-        myHist = setHistStyle(temp,samp)
-        f.cd()
-        myHist.Write()
+            fillEmptyBin(temp,4,0.00001)
+            '''
+            if  temp.Integral() == 0.0:
+                for bin in range(temp.GetXaxis().GetNbins()):
+                    temp.SetBinContent(bin,0.00001)
+            '''
+            h_total = fin.Get('h_total_mcweight')
+            totalEvents = h_total.Integral()
+            temp.Scale((lumi*CS*BR)/(totalEvents))
+            if hst=="boosted":
+                cat="B"
+            if hst=="resolved":
+                cat="R"
+            if syst=="h_reg_SR_MET":
+                samp = 'monoHbb2017_'+cat+'_SR_ggF_sp_0p35_tb_1p0_mXd_10_mA_'+mA+'_ma_'+ma
+            else:samp = 'monoHbb2017_'+cat+'_SR_ggF_sp_0p35_tb_1p0_mXd_10_mA_'+mA+'_ma_'+ma+"_"+syst.split("_")[-2]+"_"+syst.split("_")[-1]
+            myHist = setHistStyle(temp,samp)
+            f.cd()
+            myHist.Write()
 
 
 f.Close()
