@@ -5,6 +5,7 @@ import sys, optparse
 import sample_xsec_2017 as sample_xsec
 import ROOT as ROOT
 import array
+from plotStyle import myCanvas1D, SetCMSAxis, ExtraText, drawenergy1D, SetLegend
 
 usage = "usage: %prog [options] arg1 arg2"
 parser = optparse.OptionParser(usage)
@@ -16,10 +17,16 @@ parser.add_option("-m", "--mu", action="store_true", dest="plotMuRegs")
 parser.add_option("-e", "--ele", action="store_true", dest="plotEleRegs")
 parser.add_option("-p", "--pho", action="store_true", dest="plotPhoRegs")
 parser.add_option("-q", "--qcd", action="store_true", dest="plotQCDRegs")
+#parser.add_option("-syst", "--systematic", action="store_true", dest="systematic")
 parser.add_option("-c", "--cat", dest="category")
 parser.add_option("-v", "--verbose", action="store_true", dest="verbose")
 
 (options, args) = parser.parse_args()
+
+#if options.systematic==None:
+makeSyst=True
+#else:
+#    makeSyst=True
 
 if options.plotSRs==None:
     makeSRplots = False
@@ -80,124 +87,75 @@ os.system('mkdir -p'+' '+str(datestr)+'/monoHPng')
 os.system('mkdir -p'+' '+str(datestr)+'/monoHPdf')
 os.system('mkdir -p'+' '+str(datestr)+'/monoHROOT')
 
-#path='/Users/dekumar/MEGA/Fullwork/2017_Plotting/rootFiles_Oct5'
-#path='/Users/dekumar/MEGA/Fullwork/2017_Plotting/rootFiles_combined_V1_boosted_11Nov' #rootFiles_SBand_v4'
-#path='/afs/cern.ch/work/d/dekumar/public/monoH/monoHbbPlottingFiles/CMSSW_10_3_0/src/HistFiles/ForDoubleBSF_failed'
-#path='/afs/cern.ch/work/d/dekumar/public/monoH/monoHbbPlottingFiles/CMSSW_10_3_0/src/HistFiles/boosted_withdphijets'
-#path='/afs/cern.ch/work/d/dekumar/public/monoH/monoHbbPlottingFiles/CMSSW_10_3_0/src/HistFiles/V0_fixedJetID_V2_R'
-#path='/afs/cern.ch/work/d/dekumar/public/monoH/monoHbbPlottingFiles/CMSSW_10_3_0/src/HistFiles/V0_fixedJetID_V2'
 
-path='/afs/cern.ch/work/d/dekumar/public/monoH/monoHbbPlottingFiles/CMSSW_10_3_0/src/HistFiles/2017_syst_withCutFlow_v2_MWP_B_merged'
+path='/afs/cern.ch/work/d/dekumar/public/monoH/monoHbbPlottingFiles/CMSSW_10_3_0/src/HistFiles/monohbb.v06.00.03.2017_B_N2ddtApplied_remake_merged'
+signal_path = '/afs/cern.ch/work/d/dekumar/public/monoH/monoHbbPlottingFiles/CMSSW_10_3_0/src/HistFiles/monohbb.v06.00.03.2017_Signal_N2ddtApplied'
 
-#path='V0_fixedJetID_V1'
-#path='/home/deepak/MEGA/Fullwork/2017_Plotting/rootFiles'
-#path='/Users/dekumar/Desktop/test/bkg_data'
 #os.system("ls "+path+" | cat > samplelist.txt")
 
-lumi2016 = 41.5 * 1000
+lumi = 41.5 * 1000
 
 boost = True
 drawSig = False
-#/afs/cern.ch/work/d/dekumar/public/monoH/Analyzer/CMSSW_10_3_0/src/ExoPieProducer/ExoPieAnalyzer/Final_OutPutSignal_24Nov
-file1=ROOT.TFile('/afs/cern.ch/work/d/dekumar/public/monoH/monoHbbPlottingFiles/CMSSW_10_3_0/src/HistFiles/2017_syst_signal_v2_MWP/Output_EXO-ggToXdXdHToBB_sinp_0p35_tanb_1p0_mXd_10_MH3_300_MH4_150_MH2_300_MHC_300_CP3Tune_13TeV_0000_0.root','READ')
-file2=ROOT.TFile('/afs/cern.ch/work/d/dekumar/public/monoH/monoHbbPlottingFiles/CMSSW_10_3_0/src/HistFiles/2017_syst_signal_v2_MWP/Output_EXO-ggToXdXdHToBB_sinp_0p35_tanb_1p0_mXd_10_MH3_600_MH4_150_MH2_600_MHC_600_CP3Tune_13TeV_0000_0.root','READ')
-file3=ROOT.TFile('/afs/cern.ch/work/d/dekumar/public/monoH/monoHbbPlottingFiles/CMSSW_10_3_0/src/HistFiles/2017_syst_signal_v2_MWP/Output_EXO-ggToXdXdHToBB_sinp_0p35_tanb_1p0_mXd_10_MH3_1600_MH4_150_MH2_1600_MHC_1600_CP3Tune_13TeV_0000_0.root','RAED')
 
-total1=file1.Get('h_total_mcweight')
-total2=file2.Get('h_total_mcweight')
-total3=file3.Get('h_total_mcweight')
+CSList = {'ma_150_mA_300':1.606,'ma_150_mA_400':0.987,'ma_150_mA_500':0.5074,'ma_150_mA_600':0.2984,'ma_150_mA_1000':0.0419,'ma_150_mA_1200':0.0106,'ma_150_mA_1600':0.07525}
+
+def getNormHist(f,reg,histName,col,lumi,XSec,cat):
+    BR=0.588
+    hist = f.Get('h_reg_'+reg+'_'+histName+'_'+cat)
+    h_total = f.Get('h_total_mcweight')
+    hist.Scale(lumi*XSec*BR/h_total.Integral())
+    hist.SetLineColor(col)
+    hist.SetLineStyle(4)
+    hist.SetLineWidth(8)
+    return hist
+
+def sigLeg():
+    sig_leg = ROOT.TLegend(0.25, 0.60, 0.58,0.80,'',"brNDC");
+    sig_leg.SetTextSize(0.032);
+    sig_leg.SetBorderSize(0);
+    sig_leg.SetLineStyle(8);
+    sig_leg.SetLineWidth(4);
+    # sig_leg.SetFillColor(0);
+    sig_leg.SetFillStyle(0);
+    sig_leg.SetTextFont(42);
+    sig_leg.SetHeader("2HDM+a")
+    return sig_leg
+
+
+file1=ROOT.TFile(signal_path+'/Output_crab_EXO-ggToXdXdHToBB_sinp_0p35_tanb_1p0_mXd_10_MH3_600_MH4_150_MH2_600_MHC_600_CP3Tune_13TeV_0000_1.root','READ')
+file2=ROOT.TFile(signal_path+'/Output_crab_EXO-ggToXdXdHToBB_sinp_0p35_tanb_1p0_mXd_10_MH3_1000_MH4_150_MH2_1000_MHC_1000_CP3Tune_13TeV_0000_1.root','READ')
+file3=ROOT.TFile(signal_path+'/Output_crab_EXO-ggToXdXdHToBB_sinp_0p35_tanb_1p0_mXd_10_MH3_1200_MH4_150_MH2_1200_MHC_1200_CP3Tune_13TeV_0000_1.root','RAED')
+
+if cat=="resolved":
+    h_MET1 = getNormHist(file1,'SR','MET',4,lumi,CSList['ma_150_mA_600'],'resolved')
+    h_MET2 = getNormHist(file2,'SR','MET',46,lumi,CSList['ma_150_mA_1000'],'resolved')
+    h_MET3 = getNormHist(file3,'SR','MET',8,lumi,CSList['ma_150_mA_1200'],'resolved')
+
+    sig_leg = sigLeg()
+
+    sig_leg.AddEntry(h_MET1,"ma=150, mA=600","l");
+    sig_leg.AddEntry(h_MET2,"ma=150, mA=1000","l");
+    sig_leg.AddEntry(h_MET3,"ma=150, mA=1200","l");
 
 if cat=="boosted":
-    hist1=file1.Get('h_reg_SR_MET_boosted')
-    hist2=file2.Get('h_reg_SR_MET_boosted')
-    hist3=file3.Get('h_reg_SR_MET_boosted')
+    h_MET1 = getNormHist(file1,'SR','MET',4,lumi,CSList['ma_150_mA_600'],'boosted')
+    h_MET2 = getNormHist(file2,'SR','MET',46,lumi,CSList['ma_150_mA_1000'],'boosted')
+    h_MET3 = getNormHist(file3,'SR','MET',8,lumi,CSList['ma_150_mA_1200'],'boosted')
+    if True:
+        h_N2DDT1 = getNormHist(file1,'SR','N2DDT',4,lumi,CSList['ma_150_mA_600'],'boosted')
+        h_N2DDT2 = getNormHist(file2,'SR','N2DDT',46,lumi,CSList['ma_150_mA_1000'],'boosted')
+        h_N2DDT3 = getNormHist(file3,'SR','N2DDT',8,lumi,CSList['ma_150_mA_1200'],'boosted')
 
-    hist11=file1.Get('h_reg_SR_nJets_boosted')
-    hist21=file2.Get('h_reg_SR_nJets_boosted')
-    hist31=file3.Get('h_reg_SR_nJets_boosted')
+        h_N2b1_1 = getNormHist(file1,'SR','FJetN2b1',4,lumi,CSList['ma_150_mA_600'],'boosted')
+        h_N2b1_2 = getNormHist(file2,'SR','FJetN2b1',46,lumi,CSList['ma_150_mA_1000'],'boosted')
+        h_N2b1_3 = getNormHist(file3,'SR','FJetN2b1',8,lumi,CSList['ma_150_mA_1200'],'boosted')
 
-    hist12=file1.Get('h_reg_SR_min_dphi_jets_boosted')
-    hist22=file2.Get('h_reg_SR_min_dphi_jets_boosted')
-    hist32=file3.Get('h_reg_SR_min_dphi_jets_boosted')
+    sig_leg = sigLeg()
 
-    hist12.Scale(lumi2016*1.606/total1.Integral())
-    hist22.Scale(lumi2016*0.2984/total2.Integral())
-    hist32.Scale(lumi2016*0.07525/total3.Integral())
-
-    #====================================
-    hist12.SetLineColor(4)
-    hist12.SetLineStyle(8);
-    hist12.SetLineWidth(4);
-
-    hist22.SetLineColor(46)
-    hist22.SetLineStyle(8);
-    hist22.SetLineWidth(4);
-
-    hist32.SetLineColor(8)
-    hist32.SetLineStyle(8);
-    hist32.SetLineWidth(4);
-
-else:
-    hist1=file1.Get('h_reg_SR_MET_resolved')
-    hist2=file2.Get('h_reg_SR_MET_resolved')
-    hist3=file3.Get('h_reg_SR_MET_resolved')
-
-    hist11=file1.Get('h_reg_SR_nJets_resolved')
-    hist21=file2.Get('h_reg_SR_nJets_resolved')
-    hist31=file3.Get('h_reg_SR_nJets_resolved')
-
-hist1.Scale(lumi2016*1.606/total1.Integral())
-hist2.Scale(lumi2016*0.2984/total2.Integral())
-hist3.Scale(lumi2016*0.07525/total3.Integral())
-
-hist11.Scale(lumi2016*1.606/total1.Integral())
-hist21.Scale(lumi2016*0.2984/total2.Integral())
-hist31.Scale(lumi2016*0.07525/total3.Integral())
-
-#====================================
-hist1.SetLineColor(4)
-hist1.SetLineStyle(8);
-hist1.SetLineWidth(4);
-
-hist2.SetLineColor(46)
-hist2.SetLineStyle(8);
-hist2.SetLineWidth(4);
-
-hist3.SetLineColor(8)
-hist3.SetLineStyle(8);
-hist3.SetLineWidth(4);
-#=================================
-hist11.SetLineColor(4)
-hist11.SetLineStyle(8);
-hist11.SetLineWidth(4);
-
-hist21.SetLineColor(46)
-hist21.SetLineStyle(8);
-hist21.SetLineWidth(4);
-
-hist31.SetLineColor(8)
-hist31.SetLineStyle(8);
-hist31.SetLineWidth(4);
-
-#===================================
-
-sig_leg = ROOT.TLegend(0.25, 0.60, 0.58,0.80,'',"brNDC");
-
-
-sig_leg.SetTextSize(0.032);
-sig_leg.SetBorderSize(0);
-# sig_leg.SetLineColor(1);
-sig_leg.SetLineStyle(8);
-sig_leg.SetLineWidth(4);
-# sig_leg.SetFillColor(0);
-sig_leg.SetFillStyle(0);
-sig_leg.SetTextFont(42);
-
-sig_leg.SetHeader("2HDM+a")
-sig_leg.AddEntry(hist1,"ma=150 GeV, mA=300 GeV","l");
-sig_leg.AddEntry(hist2,"ma=150 GeV, mA=600 GeV","l");
-sig_leg.AddEntry(hist3,"ma=150 GeV, mA=1600 GeV","l");
-
+    sig_leg.AddEntry(h_MET1,"ma=150, mA=600","l");
+    sig_leg.AddEntry(h_MET2,"ma=150, mA=1000","l");
+    sig_leg.AddEntry(h_MET3,"ma=150, mA=1200","l");
 
 
 
@@ -224,18 +182,18 @@ def makeplot(loc,hist,titleX,XMIN,XMAX,Rebin,ISLOG,NORATIOPLOT,reg,varBin):
     elif 'Zee' in hist:
         histolabel="#splitline{Dielectron CR}{"+cat+"}"
     elif 'Wmu' in hist and 'TopWmu' not in hist:
-        histolabel="#splitline{W CR (#mu)}{"+cat+"}"
+        histolabel="#splitline{W(#mu)CR}{"+cat+"}"
     elif 'We' in hist and 'TopWe' not in hist:
-        histolabel="#splitline{W CR (e)}{"+cat+"}"
+        histolabel="#splitline{W(e)CR}{"+cat+"}"
     elif 'Topmu' in hist:
-        histolabel="#splitline{t#bar{t} CR (#mu)}{"+cat+"}"
+        histolabel="#splitline{t#bar{t}(#mu)CR}{"+cat+"}"
     elif 'Tope' in hist:
-        histolabel="#splitline{t#bar{t} CR (e)}{"+cat+"}"
+        histolabel="#splitline{t#bar{t}(e)}CR{"+cat+"}"
     elif 'TopWe' in hist:
-        histolabel="#splitline{t#bar{t} + W CR (e)}{"+cat+"}"
+        histolabel="#splitline{t#bar{t} + W(e)CR}{"+cat+"}"
 
     elif 'TopWmu' in hist:
-        histolabel="#splitline{t#bar{t} + W CR (#mu)}{"+cat+"}"
+        histolabel="#splitline{t#bar{t} + W(#mu)CR}{"+cat+"}"
         # histolabel="t#bar{t} CR (e+#mu)"
 
     elif 'SBand' in hist:
@@ -265,22 +223,21 @@ def makeplot(loc,hist,titleX,XMIN,XMAX,Rebin,ISLOG,NORATIOPLOT,reg,varBin):
     MET_Hist      = []; SE_Hist      = []
 
     count=0
+    Files = [0] * 52
     for file in files.readlines()[:]:
         myFile=path+'/'+file.rstrip()
         print ('running for file',myFile)
-        #print ('histName',hist)
-        Str=str(count)
-        exec("f"+Str+"=ROOT.TFile(myFile,'READ')",locals(), globals())
-        exec("h_temp=f"+Str+".Get("+"\'"+str(hist)+"\'"+")",locals(), globals())
-        exec("h_total_weight=f"+Str+".Get('h_total_mcweight')",locals(), globals())
+        Files[count] = ROOT.TFile(myFile,'READ')
+        h_temp=Files[count].Get(str(hist))
+        h_total_weight=Files[count].Get('h_total_mcweight')
         total_events = h_total_weight.Integral()
-        #print ('selected events',h_temp.Integral())
+        Str=str(count)
 
 
         if 'WJetsToLNu_HT' in file:
             xsec = sample_xsec.getXsec(file)
             # print ('xsec', xsec)
-            if (total_events > 0): normlisation=(xsec*lumi2016)/(total_events)
+            if (total_events > 0): normlisation=(xsec*lumi)/(total_events)
             else: normlisation=0
             h_temp.Scale(normlisation)
             if isrebin:
@@ -291,7 +248,7 @@ def makeplot(loc,hist,titleX,XMIN,XMAX,Rebin,ISLOG,NORATIOPLOT,reg,varBin):
         elif 'DYJetsToLL_M-50' in file:
             xsec = sample_xsec.getXsec(file)
             # print ('xsec', xsec)
-            if (total_events > 0): normlisation=(xsec*lumi2016)/(total_events)
+            if (total_events > 0): normlisation=(xsec*lumi)/(total_events)
             else: normlisation=0
             h_temp.Scale(normlisation)
             if isrebin:
@@ -302,7 +259,7 @@ def makeplot(loc,hist,titleX,XMIN,XMAX,Rebin,ISLOG,NORATIOPLOT,reg,varBin):
         elif 'ZJetsToNuNu' in file:
             xsec = sample_xsec.getXsec(file)
             # print ('xsec', xsec)
-            if (total_events > 0): normlisation=(xsec*lumi2016)/(total_events)
+            if (total_events > 0): normlisation=(xsec*lumi)/(total_events)
             else: normlisation=0
             # print 'integral before scaling',
             h_temp.Scale(normlisation)
@@ -314,7 +271,7 @@ def makeplot(loc,hist,titleX,XMIN,XMAX,Rebin,ISLOG,NORATIOPLOT,reg,varBin):
         elif 'GJets_HT' in file:
             xsec = sample_xsec.getXsec(file)
             # print ('xsec', xsec)
-            if (total_events > 0): normlisation=(xsec*lumi2016)/(total_events)
+            if (total_events > 0): normlisation=(xsec*lumi)/(total_events)
             else: normlisation=0
             h_temp.Scale(normlisation)
             if isrebin:
@@ -325,7 +282,7 @@ def makeplot(loc,hist,titleX,XMIN,XMAX,Rebin,ISLOG,NORATIOPLOT,reg,varBin):
         elif ('WW' in file) or ('WZ' in file) or ('ZZ' in file):
             xsec = sample_xsec.getXsec(file)
             # print ('xsec', xsec)
-            if (total_events > 0): normlisation=(xsec*lumi2016)/(total_events)
+            if (total_events > 0): normlisation=(xsec*lumi)/(total_events)
             else: normlisation=0
             h_temp.Scale(normlisation)
             if isrebin:
@@ -337,7 +294,7 @@ def makeplot(loc,hist,titleX,XMIN,XMAX,Rebin,ISLOG,NORATIOPLOT,reg,varBin):
         elif ('ST_t' in file) or ('ST_s' in file):
             xsec = sample_xsec.getXsec(file)
             # print ('xsec', xsec)
-            if (total_events > 0): normlisation=(xsec*lumi2016)/(total_events)
+            if (total_events > 0): normlisation=(xsec*lumi)/(total_events)
             else: normlisation=0
             h_temp.Scale(normlisation)
             if isrebin:
@@ -348,7 +305,7 @@ def makeplot(loc,hist,titleX,XMIN,XMAX,Rebin,ISLOG,NORATIOPLOT,reg,varBin):
         elif 'TTTo' in file:
             xsec = sample_xsec.getXsec(file)
             # print ('xsec', xsec)
-            if (total_events > 0): normlisation=(xsec*lumi2016)/(total_events)
+            if (total_events > 0): normlisation=(xsec*lumi)/(total_events)
             else: normlisation=0
             h_temp.Scale(normlisation)
             if isrebin:
@@ -361,7 +318,7 @@ def makeplot(loc,hist,titleX,XMIN,XMAX,Rebin,ISLOG,NORATIOPLOT,reg,varBin):
         elif 'QCD' in file:
             xsec = sample_xsec.getXsec(file)
             # print ('xsec', xsec)
-            if (total_events > 0): normlisation=(xsec*lumi2016)/(total_events)
+            if (total_events > 0): normlisation=(xsec*lumi)/(total_events)
             else: normlisation=0
             h_temp.Scale(normlisation)
             if isrebin:
@@ -372,7 +329,7 @@ def makeplot(loc,hist,titleX,XMIN,XMAX,Rebin,ISLOG,NORATIOPLOT,reg,varBin):
         elif 'HToBB' in file:
             xsec = sample_xsec.getXsec(file)
             # print ('xsec', xsec)
-            if (total_events > 0): normlisation=(xsec*lumi2016)/(total_events)
+            if (total_events > 0): normlisation=(xsec*lumi)/(total_events)
             else: normlisation=0
             h_temp.Scale(normlisation)
             if isrebin:
@@ -469,7 +426,7 @@ def makeplot(loc,hist,titleX,XMIN,XMAX,Rebin,ISLOG,NORATIOPLOT,reg,varBin):
     total_hists = WJets_Hists + DYJets_Hits + ZJets_Hits + GJets_Hists + DIBOSON_Hists + STop_Hists + Top_Hists + QCD_Hists + SMH_Hists
 ## ============================= statistical uncertainty =======================
 
-    
+
     ZJets_temp  = ZJets.Clone()
     DYJets_temp = DYJets.Clone()
     WJets_temp  = WJets.Clone()
@@ -490,7 +447,7 @@ def makeplot(loc,hist,titleX,XMIN,XMAX,Rebin,ISLOG,NORATIOPLOT,reg,varBin):
     QCD_temp.Rebin(QCD_temp.GetNbinsX())
     SMH_temp.Rebin(QCD_temp.GetNbinsX())
 
-    ZJets_stats_err  = ZJets_temp.GetBinError(1) 
+    ZJets_stats_err  = ZJets_temp.GetBinError(1)
     DYJets_stats_err = DYJets_temp.GetBinError(1)
     WJets_stats_err  = WJets_temp.GetBinError(1)
     STop_stats_err   = STop_temp.GetBinError(1)
@@ -499,42 +456,36 @@ def makeplot(loc,hist,titleX,XMIN,XMAX,Rebin,ISLOG,NORATIOPLOT,reg,varBin):
     DIBOSON_stats_err= DIBOSON_temp.GetBinError(1)
     QCD_stats_err    = QCD_temp.GetBinError(1)
     SMH_stats_err    = SMH_temp.GetBinError(1)
-    
-   
+
+
 
 ## ============================
 
     DYLegend    =   "Z(ll) + jets "
     WLegend     =   "W(l#nu) + jets"
-    GLegend     =   "G jets "
+    GLegend     =   "#gamma + jets "
     ZLegend     =   "Z(#nu#nu) + jets "
     STLegend    =   "Single t "
-    TTLegend    =   "Top "
-    VVLegend    =   "DIBOSON "
+    TTLegend    =   "t#bar{t} "
+    VVLegend    =   "WW/WZ/ZZ "
     QCDLegend   =   "QCD  "
     SMHLegend   =  "SM H "
 
-    legend = ROOT.TLegend(0.55, 0.65, 0.92,0.92,'',"brNDC");
-    legend.SetTextSize(0.032);
-    legend.SetBorderSize(0);
-    legend.SetLineColor(1);
-    legend.SetLineStyle(1);
-    legend.SetLineWidth(1);
-    legend.SetFillColor(0);
-    legend.SetFillStyle(0);
-    legend.SetTextFont(42);
-    legend.SetNColumns(2);
-    legend.SetColumnSeparation(.001)
+    legend = SetLegend([.50,.58,.93,.92],ncol=2)
 
-    # legend.AddEntry(DYJets,DYLegend,"f");
-    # legend.AddEntry(ZJets,ZLegend,"f");
-    # legend.AddEntry(WJets,WLegend,"f");
-    # legend.AddEntry(Top,TTLegend,"f");
-    # legend.AddEntry(STop,STLegend,"f");
-    # legend.AddEntry(GJets,GLegend,"f");
-    # legend.AddEntry(DIBOSON,VVLegend,"f");
-    # legend.AddEntry(QCD,QCDLegend,"f");
-    # legend.AddEntry(SMH,SMHLegend,"f");
+    # legend = ROOT.TLegend(0.55, 0.65, 0.92,0.92,'',"brNDC");
+    # legend.SetTextSize(0.032);
+    # legend.SetBorderSize(0);
+    # legend.SetLineColor(1);
+    # legend.SetLineStyle(1);
+    # legend.SetLineWidth(1);
+    # legend.SetFillColor(0);
+    # legend.SetFillStyle(0);
+    # legend.SetTextFont(42);
+    # legend.SetNColumns(2);
+    # legend.SetColumnSeparation(.001)
+
+
 
     if dtset=="SE":
         h_data=SE_Hist[0]
@@ -544,6 +495,8 @@ def makeplot(loc,hist,titleX,XMIN,XMAX,Rebin,ISLOG,NORATIOPLOT,reg,varBin):
     h_data.SetMarkerColor(ROOT.kBlack);
     h_data.SetMarkerStyle(20);
     h_data.SetLineColor(1)
+    h_data.SetMarkerSize(1.5)
+    # h_data = SetCMSAxis(h_data)
 
 
     ROOT.gStyle.SetHistTopMargin(0.)
@@ -553,62 +506,64 @@ def makeplot(loc,hist,titleX,XMIN,XMAX,Rebin,ISLOG,NORATIOPLOT,reg,varBin):
         legend.AddEntry(h_data,"Data","PEL")
         # h_data.Draw("same p e1");
 
-    legend.AddEntry(Top,TTLegend,"f");
-    legend.AddEntry(STop,STLegend,"f");
-    legend.AddEntry(WJets,WLegend,"f");
-    legend.AddEntry(DIBOSON,VVLegend,"f");
-    # if GJetsCount > 0:legend.AddEntry(GJets,GLegend,"f");
-    # if ZJetsCount > 0:legend.AddEntry(ZJets,ZLegend,"f");
-    legend.AddEntry(GJets,GLegend,"f");
-    legend.AddEntry(ZJets,ZLegend,"f");
-    legend.AddEntry(DYJets,DYLegend,"f");
-    legend.AddEntry(QCD,QCDLegend,"f");
-    legend.AddEntry(SMH,SMHLegend,"f");
+    if 'Zee' in str(hist) or 'Zmumu' in str(hist):
+        legend.AddEntry(DYJets,DYLegend,"f");
+        legend.AddEntry(DIBOSON,VVLegend,"f");
+        legend.AddEntry(Top,TTLegend,"f");
+        legend.AddEntry(STop,STLegend,"f");
+        legend.AddEntry(WJets,WLegend,"f");
+        legend.AddEntry(GJets,GLegend,"f");
+        legend.AddEntry(ZJets,ZLegend,"f");
+        legend.AddEntry(QCD,QCDLegend,"f");
+        legend.AddEntry(SMH,SMHLegend,"f");
+
+    elif 'We' in str(hist) or 'Wmu' in str(hist):
+        legend.AddEntry(WJets,WLegend,"f");
+        legend.AddEntry(Top,TTLegend,"f");
+        legend.AddEntry(STop,STLegend,"f");
+        legend.AddEntry(DIBOSON,VVLegend,"f");
+        legend.AddEntry(GJets,GLegend,"f");
+        legend.AddEntry(ZJets,ZLegend,"f");
+        legend.AddEntry(DYJets,DYLegend,"f");
+        legend.AddEntry(QCD,QCDLegend,"f");
+        legend.AddEntry(SMH,SMHLegend,"f");
+    else:
+        legend.AddEntry(Top,TTLegend,"f");
+        legend.AddEntry(STop,STLegend,"f");
+        legend.AddEntry(WJets,WLegend,"f");
+        legend.AddEntry(DIBOSON,VVLegend,"f");
+        legend.AddEntry(GJets,GLegend,"f");
+        legend.AddEntry(ZJets,ZLegend,"f");
+        legend.AddEntry(DYJets,DYLegend,"f");
+        legend.AddEntry(QCD,QCDLegend,"f");
+        legend.AddEntry(SMH,SMHLegend,"f");
 
 
 #============== CANVAS DECLARATION ===================
-    c12 = ROOT.TCanvas("Hist", "Hist", 0,0,1000,1000);
-
+    #c12 = ROOT.TCanvas("Hist", "Hist", 0,0,1000,1000);
+    c12 = myCanvas1D()
 #==================Stack==============================
     hs = ROOT.THStack("hs"," ");
 
 #============Colors for Histos
-    # DYJets.SetFillColor(ROOT.kGreen+2);
-    # DYJets.SetLineWidth(0);
-    # ZJets.SetFillColor(ROOT.kAzure+1);
-    # ZJets.SetLineWidth(0);
-    # DIBOSON.SetFillColor(ROOT.kBlue+2);
-    # DIBOSON.SetLineWidth(0);
-    # Top.SetFillColor(ROOT.kOrange-2);
-    # Top.SetLineWidth(0);
-    # WJets.SetFillColor(ROOT.kViolet-3);
-    # WJets.SetLineWidth(0);
-    # STop.SetFillColor(ROOT.kOrange+1);
-    # STop.SetLineWidth(0);
-    # GJets.SetFillColor(ROOT.kCyan-9);
-    # GJets.SetLineWidth(0);
-    # QCD.SetFillColor(ROOT.kGray+1);
-    # QCD.SetLineWidth(0);
-    # SMH.SetFillColor(ROOT.kRed-2);
-    # SMH.SetLineWidth(0);
 
     DYJets.SetFillColor(ROOT.kGreen+2);
     DYJets.SetLineWidth(0);
     ZJets.SetFillColor(ROOT.kAzure+1);
     ZJets.SetLineWidth(0);
-    DIBOSON.SetFillColor(ROOT.kBlue+2);
+    DIBOSON.SetFillColor(30)#ROOT.kBlue+2);
     DIBOSON.SetLineWidth(0);
-    Top.SetFillColor(ROOT.kOrange+8);
+    Top.SetFillColor(2)#ROOT.kOrange+8);
     Top.SetLineWidth(0);
-    WJets.SetFillColor(ROOT.kViolet-3);
+    WJets.SetFillColor(ROOT.kBlue+2)#ROOT.kViolet-3);
     WJets.SetLineWidth(0);
-    STop.SetFillColor(ROOT.kOrange+6);
+    STop.SetFillColor(ROOT.kRed+3)#ROOT.kOrange+6);
     STop.SetLineWidth(0);
     GJets.SetFillColor(ROOT.kCyan-9);
     GJets.SetLineWidth(0);
     QCD.SetFillColor(ROOT.kGray+1);
     QCD.SetLineWidth(0);
-    SMH.SetFillColor(ROOT.kRed-2);
+    SMH.SetFillColor(5)#ROOT.kRed-2);
     SMH.SetLineWidth(0);
 
 #=====================Stack all the histogram =========================
@@ -634,26 +589,39 @@ def makeplot(loc,hist,titleX,XMIN,XMAX,Rebin,ISLOG,NORATIOPLOT,reg,varBin):
     print ('QCDCount: ',QCDCount)
     print ('SMHCount: ',SMHCount)
 
-    # if (SMHCount > 0 ):    hs.Add(SMH,"hist");
-    # if (GJetsCount > 0):   hs.Add(GJets,"hist");
-    # if (VVCount > 0):      hs.Add(DIBOSON,"hist");
-    # if (QCDCount > 0):     hs.Add(QCD,"hist");
-    # if (STopCount > 0):    hs.Add(STop,"hist");
-    # if (TTCount > 0):      hs.Add(Top,"hist");
-    # if (WJetsCount > 0):   hs.Add(WJets,"hist");
-    # if (ZJetsCount > 0):   hs.Add(ZJets,"hist");
-    # if (DYJetsCount > 0):  hs.Add(DYJets,"hist");
 
+    if 'Zee' in str(hist) or 'Zmumu' in str(hist):
+        if (SMHCount > 0 ):    hs.Add(SMH,"hist");
+        if (QCDCount > 0):     hs.Add(QCD,"hist");
+        if (ZJetsCount > 0):   hs.Add(ZJets,"hist");
+        if (GJetsCount > 0):   hs.Add(GJets,"hist");
+        if (WJetsCount > 0):   hs.Add(WJets,"hist");
+        if (STopCount > 0):    hs.Add(STop,"hist");
+        if (TTCount > 0):      hs.Add(Top,"hist");
+        if (VVCount > 0):      hs.Add(DIBOSON,"hist");
+        if (DYJetsCount > 0):  hs.Add(DYJets,"hist");
 
-    if (SMHCount > 0 ):    hs.Add(SMH,"hist");
-    if (QCDCount > 0):     hs.Add(QCD,"hist");
-    if (DYJetsCount > 0):  hs.Add(DYJets,"hist");
-    if (ZJetsCount > 0):   hs.Add(ZJets,"hist");
-    if (GJetsCount > 0):   hs.Add(GJets,"hist");
-    if (VVCount > 0):      hs.Add(DIBOSON,"hist");
-    if (WJetsCount > 0):   hs.Add(WJets,"hist");
-    if (STopCount > 0):    hs.Add(STop,"hist");
-    if (TTCount > 0):      hs.Add(Top,"hist");
+    elif 'We' in str(hist) or 'Wmu' in str(hist):
+        if (SMHCount > 0 ):    hs.Add(SMH,"hist");
+        if (QCDCount > 0):     hs.Add(QCD,"hist");
+        if (DYJetsCount > 0):  hs.Add(DYJets,"hist");
+        if (ZJetsCount > 0):   hs.Add(ZJets,"hist");
+        if (GJetsCount > 0):   hs.Add(GJets,"hist");
+        if (VVCount > 0):      hs.Add(DIBOSON,"hist");
+        if (STopCount > 0):    hs.Add(STop,"hist");
+        if (TTCount > 0):      hs.Add(Top,"hist");
+        if (WJetsCount > 0):   hs.Add(WJets,"hist");
+
+    else:
+        if (SMHCount > 0 ):    hs.Add(SMH,"hist");
+        if (QCDCount > 0):     hs.Add(QCD,"hist");
+        if (DYJetsCount > 0):  hs.Add(DYJets,"hist");
+        if (ZJetsCount > 0):   hs.Add(ZJets,"hist");
+        if (GJetsCount > 0):   hs.Add(GJets,"hist");
+        if (VVCount > 0):      hs.Add(DIBOSON,"hist");
+        if (WJetsCount > 0):   hs.Add(WJets,"hist");
+        if (STopCount > 0):    hs.Add(STop,"hist");
+        if (TTCount > 0):      hs.Add(Top,"hist");
 
     hasNoEvents=False
     Stackhist = hs.GetStack().Last()
@@ -689,38 +657,48 @@ def makeplot(loc,hist,titleX,XMIN,XMAX,Rebin,ISLOG,NORATIOPLOT,reg,varBin):
 
     if(NORATIOPLOT):
         c1_2 = ROOT.TPad("c1_2","newpad",0,0.05,1,1);   #0.993);
-        c1_2.SetRightMargin(0.04);
-
+        c1_2.SetRightMargin(0.06);
     else:
-        c1_2 =  ROOT.TPad("c1_2","newpad",0,0.28,1,1);
+        c1_2 =  ROOT.TPad("c1_2","newpad",0,0.235,1,1);
+
 
     c1_2.SetBottomMargin(0.09);
-    c1_2.SetTopMargin(0.06);
+    c1_2.SetTopMargin(0.08);
+    c1_2.SetLeftMargin(0.12);
+    c1_2.SetRightMargin(0.06);
     c1_2.SetLogy(ISLOG);
     #if(VARIABLEBINS){ c1_2->SetLogx(0);}
     c1_2.SetTicky(1)
     c1_2.SetTickx(1)
     c1_2.Draw();
     c1_2.cd();
+
     hs.Draw()
+    # print hs.GetStack()
+    # for h in hs.GetStack():
+    #     h=SetCMSAxis(h)
+    #     print "====================================================\n"
+    #     print h.Integral()
+    #     print "====================================================\n"
+    # # hs=SetCMSAxis(hs)
     if drawSig and 'MET' in hist:
-        hist1.Draw('same')
-        hist2.Draw('same')
-        hist3.Draw('same')
-        sig_leg.Draw()
-    '''
-    if drawSig and 'nJets' in hist:
-        hist11.Draw('same')
-        hist21.Draw('same')
-        hist31.Draw('same')
+        h_MET1.Draw('same')
+        h_MET2.Draw('same')
+        h_MET3.Draw('same')
         sig_leg.Draw()
 
-    if drawSig and 'min_dphi_jets' in hist and boost:
-        hist12.Draw('same')
-        hist22.Draw('same')
-        hist32.Draw('same')
+    if drawSig and 'FJetN2b1' in hist:
+        h_N2b1_1.Draw('same')
+        h_N2b1_2.Draw('same')
+        h_N2b1_3.Draw('same')
         sig_leg.Draw()
-     '''
+
+    if drawSig and 'N2DDT' in hist and boost:
+        h_N2DDT1.Draw('same')
+        h_N2DDT2.Draw('same')
+        h_N2DDT3.Draw('same')
+        sig_leg.Draw()
+
 #    h_err.Draw("E2 SAME")
 
 #####================================= data section =========================
@@ -732,12 +710,13 @@ def makeplot(loc,hist,titleX,XMIN,XMAX,Rebin,ISLOG,NORATIOPLOT,reg,varBin):
     # #h_data.Rebin(REBIN)
     # h_data.SetLineColor(1)
     #
-    #
+    #SetCMSAxis
     # ROOT.gStyle.SetHistTopMargin(0.)
     #
     #
     if(not NORATIOPLOT):
         h_data.Draw("same p e1");
+
     # if(ISLOG==1):    hs.SetMinimum(0.28);
     # if(ISLOG==0):    hs.SetMaximum(maxi*1.35);
     # if(ISLOG==0):    hs.SetMinimum(0.0001);
@@ -759,36 +738,29 @@ def makeplot(loc,hist,titleX,XMIN,XMAX,Rebin,ISLOG,NORATIOPLOT,reg,varBin):
             hs.GetXaxis().SetTitleFont(42)
             hs.GetXaxis().SetLabelFont(42)
             hs.GetXaxis().SetLabelSize(.03)
-            hs.GetYaxis().SetTitle("Events")
-            hs.GetYaxis().SetTitleSize(0.12)
-            hs.GetYaxis().SetTitleOffset(1.5)
-            hs.GetYaxis().SetTitleFont(42)
-            hs.GetYaxis().SetLabelFont(42)
-            hs.GetYaxis().SetLabelSize(0.05)
             hs.GetXaxis().SetTitle(str(titleX))
             hs.GetXaxis().SetTitleFont(42)
-            hs.GetXaxis().SetLabelFont(42);
             hs.GetXaxis().SetLabelOffset(.01);
-            hs.GetXaxis().SetLabelSize(0.03);
-            hs.GetYaxis().SetTitle("Events");
-            hs.GetYaxis().SetTitleSize(0.05);
+            hs.GetYaxis().SetTitleOffset(0.7)
+            hs.GetYaxis().SetTitle("Events/bin");
+            hs.GetYaxis().SetTitleSize(0.08);
             hs.GetYaxis().SetTitleFont(42);
             hs.GetYaxis().SetLabelFont(42);
-            hs.GetYaxis().SetLabelSize(.03);
+            hs.GetYaxis().SetLabelSize(.04);
         else:
             # hs.GetXaxis().SetTitle(str(titleX))
-            # hs.GetXaxis().SetTitleSize(0.00);
             hs.GetXaxis().SetTitleOffset(0.00);
             hs.GetXaxis().SetTitleFont(42);
+            hs.GetXaxis().SetTitleSize(0.05);
             hs.GetXaxis().SetLabelFont(42);
             hs.GetXaxis().SetLabelOffset(.01);
-            hs.GetXaxis().SetLabelSize(0)#0.04);
-            hs.GetYaxis().SetTitle("Events");
-            hs.GetYaxis().SetTitleSize(0.045);
-            hs.GetYaxis().SetTitleOffset(1);
+            hs.GetXaxis().SetLabelSize(0.0)#0.04);
+            hs.GetYaxis().SetTitle("Events/bin");
+            hs.GetYaxis().SetTitleSize(0.08);
+            hs.GetYaxis().SetTitleOffset(0.7);
             hs.GetYaxis().SetTitleFont(42);
             hs.GetYaxis().SetLabelFont(42);
-            hs.GetYaxis().SetLabelSize(.03);
+            hs.GetYaxis().SetLabelSize(.06);
 
         if not isrebin: hs.GetXaxis().SetRangeUser(XMIN,XMAX);
         hs.GetXaxis().SetNdivisions(508)
@@ -809,56 +781,22 @@ def makeplot(loc,hist,titleX,XMIN,XMAX,Rebin,ISLOG,NORATIOPLOT,reg,varBin):
     legend.Draw('same')
 
 #=================================================latex section =====================
-    #latexPreCMSname= "#bf{CMS} #it{Preliminary}"
-    latexPreCMSname= "#bf{CMS}"
-    latexWork = "work in progress"
-    #t2c =  ROOT.TLatex(0.10,0.97,latexPreCMSname);
-    t2c =  ROOT.TLatex(0.12,0.87,latexPreCMSname);
-    t2n =  ROOT.TLatex(0.12,0.82,latexWork);
-    t2c.SetTextSize(0.055)
-    t2n.SetTextSize(0.045)
 
-    t2a =  ROOT.TLatex(0.7,0.97,'41.5 fb^{-1} (13TeV )');
-    t2a.SetTextSize(0.040);
+    t2d = ExtraText(str(histolabel),0.20,0.80)
+    t2d.SetTextSize(0.06);
 
-    t2b = ROOT.TLatex(0.22,0.88,'');
-    t2b.SetTextSize(0.03);
-
-
-    t2d = ROOT.TLatex(0.39,0.85,str(histolabel));
-    t2d.SetTextSize(0.045);
-
-    t2a.SetTextAlign(12);
-    t2a.SetNDC(ROOT.kTRUE);
-    t2a.SetTextFont(42);
-    t2b.SetTextAlign(12);
-    t2b.SetNDC(ROOT.kTRUE);
-    t2b.SetTextFont(61);
-    t2c.SetTextAlign(12);
-    t2c.SetNDC(ROOT.kTRUE);
-    t2c.SetTextFont(42);
-    t2n.SetTextAlign(12);
-    t2n.SetNDC(ROOT.kTRUE);
-    t2n.SetTextFont(42);
     t2d.SetTextAlign(12);
     t2d.SetNDC(ROOT.kTRUE);
     t2d.SetTextFont(42);
-    t2a.Draw("same");
-    t2b.Draw("same");
-    t2c.Draw("same");
-    t2n.Draw("same");
     t2d.Draw("same");
+
+    pt = drawenergy1D(True,text_="Internal",data=True)
+    for ipt in pt: ipt.Draw()
+
 #======================================== ratio log ================
 
-    ratioleg =  ROOT.TLegend(0.6, 0.88, 0.89, 0.98);
-    #//ratioleg->SetFillColor(0);
-    ratioleg.SetLineColor(0);
-    ratioleg.SetShadowColor(0);
-    ratioleg.SetTextFont(42);
-    ratioleg.SetTextSize(0.09);
-    ratioleg.SetBorderSize(1);
-    ratioleg.SetNColumns(2);
-
+    ratioleg = SetLegend([.72,.80,.90,.90],1)
+    ratioleg.SetTextSize(0.15)
 
 #============================================= statistical error section ======================
 
@@ -887,14 +825,14 @@ def makeplot(loc,hist,titleX,XMIN,XMAX,Rebin,ISLOG,NORATIOPLOT,reg,varBin):
         DataMCPre = h_data.Clone();
         DataMC.Divide(Stackhist);
         DataMC.GetYaxis().SetTitle("#frac{Data-Pred}{Pred}");
-        DataMC.GetYaxis().SetTitleSize(0.1);
+        DataMC.GetYaxis().SetTitleSize(0.13);
         DataMC.GetYaxis().SetTitleOffset(0.42);
         DataMC.GetYaxis().SetTitleFont(42);
-        DataMC.GetYaxis().SetLabelSize(0.08);
+        DataMC.GetYaxis().SetLabelSize(0.12);
         DataMC.GetYaxis().CenterTitle();
         DataMC.GetXaxis().SetTitle(str(titleX))
-        DataMC.GetXaxis().SetLabelSize(0.11);
-        DataMC.GetXaxis().SetTitleSize(0.11);
+        DataMC.GetXaxis().SetLabelSize(0.16);
+        DataMC.GetXaxis().SetTitleSize(0.20);
         DataMC.GetXaxis().SetTitleOffset(1);
         DataMC.GetXaxis().SetTitleFont(42);
         DataMC.GetXaxis().SetTickLength(0.07);
@@ -902,19 +840,20 @@ def makeplot(loc,hist,titleX,XMIN,XMAX,Rebin,ISLOG,NORATIOPLOT,reg,varBin):
         DataMC.GetYaxis().SetLabelFont(42);
 
 
-    c1_1 = ROOT.TPad("c1_1", "newpad",0,0.05,1,0.3);
+
+    c1_1 = ROOT.TPad("c1_1", "newpad",0,0.00,1,0.3);
 
     if (not NORATIOPLOT): c1_1.Draw();
     c1_1.cd();
     c1_1.Range(-7.862408,-629.6193,53.07125,486.5489);
     c1_1.SetFillColor(0);
     c1_1.SetTicky(1);
-    c1_1.SetLeftMargin(0.1);
-    c1_1.SetRightMargin(0.1);
-    c1_1.SetTopMargin(0.0);
-    c1_1.SetBottomMargin(0.32);
+    c1_1.SetLeftMargin(0.12);
+    c1_1.SetRightMargin(0.06);
+    c1_1.SetTopMargin(0.00);
+    c1_1.SetBottomMargin(0.42);
     c1_1.SetFrameFillStyle(0);
-    #c1_1.SetFrameBorderMode(0);
+    c1_1.SetFrameBorderMode(0);
     c1_1.SetFrameFillStyle(0);
     c1_1.SetFrameBorderMode(0);
     c1_1.SetLogy(0);
@@ -929,9 +868,10 @@ def makeplot(loc,hist,titleX,XMIN,XMAX,Rebin,ISLOG,NORATIOPLOT,reg,varBin):
             DataMC.GetXaxis().SetNdivisions(508)
 
         if not isrebin: DataMC.GetXaxis().SetRangeUser(XMIN,XMAX)
-        DataMC.SetMarkerSize(0.7)
+        DataMC.SetMarkerSize(1.5)
         DataMC.SetMarkerStyle(20)
         DataMC.SetMarkerColor(1)
+        DataMC.SetLineWidth(2)
         DataMC.SetMinimum(-1.08)
         DataMC.SetMaximum(1.08)
         DataMC.GetXaxis().SetNdivisions(508)
@@ -962,34 +902,41 @@ def makeplot(loc,hist,titleX,XMIN,XMAX,Rebin,ISLOG,NORATIOPLOT,reg,varBin):
     bkgTotal_tmp = Stackhist.Clone()
     bkgTotal_tmp.Rebin(bkgTotal_tmp.GetNbinsX())
     bkgTotal_stats_err = bkgTotal_tmp.GetBinError(1)
-    
-    yeildFile = open(str(datestr)+'/monoHPng/'+str(outputshapefilename)+'.txt','w')
-    yeildFile.write('ZJetsCount  :   %.2f'%ZJetsCount+'    %.2f'%ZJets_stats_err+'\n')
-    yeildFile.write('DYJetsCount :   %.2f'%DYJetsCount+'    %.2f'%DYJets_stats_err+'\n')
-    yeildFile.write('WJetsCount  :   %.2f'%WJetsCount+'    %.2f'%WJets_stats_err+'\n')
-    yeildFile.write('STopCount   :   %.2f'%STopCount+'    %.2f'%STop_stats_err+'\n')
-    yeildFile.write('GJetsCount  :   %.2f'%GJetsCount+'    %.2f'%GJets_stats_err+'\n')
-    yeildFile.write('TTCount     :   %.2f'%TTCount+'    %.2f'%Top_stats_err+'\n')
-    yeildFile.write('VVCount     :   %.2f'%VVCount+'    %.2f'%DIBOSON_stats_err+'\n')
-    yeildFile.write('QCDCount    :   %.2f'%QCDCount+'    %.2f'%QCD_stats_err+'\n')
-    yeildFile.write('SMHCount    :   %.2f'%SMHCount+'    %.2f'%SMH_stats_err+'\n')
-    yeildFile.write('bkgSum      :   %.2f'%bkgTotal+'    %.2f'%bkgTotal_stats_err+'\n')
-    yeildFile.write('Data        :   %.2f'%dataEvents+'    %.2f'%bkgTotal_stats_err+'\n') 
-    yeildFile.close()
-    
 
     if(ISLOG==0):
-        c12.SaveAs(str(datestr)+'/monoHPdf/'+str(outputshapefilename)+'.pdf')
-        c12.SaveAs(str(datestr)+'/monoHPng/'+str(outputshapefilename)+'.png')
+        yeildFile = open(str(datestr)+'/monoHPng/'+str(outputshapefilename)+'.txt','w')
+    if(ISLOG==1):
+        yeildFile = open(str(datestr)+'/monoHPng/'+str(outputshapefilename)+'log.txt','w')
+    yeildFile.write('Z+jets      &   %.2f'%ZJetsCount+'  \pm   %.2f'%ZJets_stats_err+'\n')
+    yeildFile.write('DY+jets     &   %.2f'%DYJetsCount+'  \pm   %.2f'%DYJets_stats_err+'\n')
+    yeildFile.write('W+jets      &   %.2f'%WJetsCount+'  \pm   %.2f'%WJets_stats_err+'\n')
+    yeildFile.write('Single t    &   %.2f'%STopCount+'  \pm   %.2f'%STop_stats_err+'\n')
+    yeildFile.write('gamma+jets  &   %.2f'%GJetsCount+'  \pm   %.2f'%GJets_stats_err+'\n')
+    yeildFile.write('tt          &   %.2f'%TTCount+'  \pm   %.2f'%Top_stats_err+'\n')
+    yeildFile.write('DIBOSON     &   %.2f'%VVCount+'  \pm   %.2f'%DIBOSON_stats_err+'\n')
+    yeildFile.write('QCD         &   %.2f'%QCDCount+'  \pm   %.2f'%QCD_stats_err+'\n')
+    yeildFile.write('SM h        &   %.2f'%SMHCount+'  \pm   %.2f'%SMH_stats_err+'\n')
+    yeildFile.write('bkgSum      &   %.2f'%bkgTotal+'  \pm   %.2f'%bkgTotal_stats_err+'\n')
+    yeildFile.write('Data        &   %.2f'%dataEvents+'  \pm   %.2f'%bkgTotal_stats_err+'\n')
+    yeildFile.close()
+
+
+    if(ISLOG==0):
+        if not ('up' in outputshapefilename or  'down' in outputshapefilename):
+	    c12.SaveAs(str(datestr)+'/monoHPdf/'+str(outputshapefilename)+'.pdf')
+        if not ('up' in outputshapefilename or  'down' in outputshapefilename):
+	    c12.SaveAs(str(datestr)+'/monoHPng/'+str(outputshapefilename)+'.png')
+        rootFile=str(datestr)+'/monoHROOT/'+str(outputshapefilename)+'.root'
 
 
     if(ISLOG==1):
-        c12.SaveAs(str(datestr)+'/monoHPdf/'+str(outputshapefilename)+'log.pdf')
-        c12.SaveAs(str(datestr)+'/monoHPng/'+str(outputshapefilename)+'log.png')
+        if not ('up' in outputshapefilename or  'down' in outputshapefilename):
+	    c12.SaveAs(str(datestr)+'/monoHPdf/'+str(outputshapefilename)+'log.pdf')
+        if not ('up' in outputshapefilename or  'down' in outputshapefilename):
+	    c12.SaveAs(str(datestr)+'/monoHPng/'+str(outputshapefilename)+'log.png')
+        rootFile=str(datestr)+'/monoHROOT/'+str(outputshapefilename)+'.root'
 
-    #
 
-    rootFile=str(datestr)+'/monoHROOT/'+str(outputshapefilename)+'.root'
     print (rootFile)
 
     fshape = ROOT.TFile(rootFile,"RECREATE")
@@ -1025,27 +972,11 @@ def makeplot(loc,hist,titleX,XMIN,XMAX,Rebin,ISLOG,NORATIOPLOT,reg,varBin):
     data_obs.Write();
     fshape.Write();
     fshape.Close();
-    #'''
-
-    # except Exception as e:
-    #     print (e)
-    #     print ('this hist does not exit in the root file'+'\n')
-    #     pass
-    # c1_2.SaveAs('test.png')
-    # c1_2.SaveAs('test.pdf')
-#=======================================================================
-
 
 ######################################################################
 
 regions=[]
 PUreg=[]
-
-
-#makeplot("reg_Topmu_Recoil",'h_reg_Topmu_Recoil','Hadronic Recoil (GeV)',200.,1000.,1,1,0,'reg',varBin=False)
-#makeplot("reg_Wmu_Recoil",'h_reg_Wmu_Recoil','Hadronic Recoil (GeV)',200.,1000.,1,1,0,'reg',varBin=False)
-#makeplot("reg_We_Recoil",'h_reg_We_Recoil','Hadronic Recoil (GeV)',200.,1000.,1,1,0,'reg',varBin=False)
-#makeplot("reg_Tope_Recoil",'h_reg_Tope_Recoil','Hadronic Recoil (GeV)',200.,1000.,1,1,0,'reg',varBin=False)
 
 
 if makeMuCRplots:
@@ -1073,31 +1004,60 @@ if makeQCDCRplots:
 isBoosted= False
 if cat=="boosted":isBoosted=True
 print ('regions',regions)
+
+if makeEleCRplots:
+    if isBoosted:
+        makeplot("reg_TopenuCR_boosted_cutFlow",'h_reg_TopenuCR_boosted_cutFlow','cutflow',1,10,1,1,0,'reg',varBin=False)
+        makeplot("reg_ZeeCR_boosted_cutFlow",'h_reg_ZeeCR_boosted_cutFlow','cutflow',1,10,1,1,0,'reg',varBin=False)
+        makeplot("reg_WenuCR_boosted_cutFlow",'h_reg_WenuCR_boosted_cutFlow','cutflow',1,10,1,1,0,'reg',varBin=False)
+    else:
+        makeplot("reg_WenuCR_resolved_cutFlow",'h_reg_WenuCR_resolved_cutFlow','cutflow',1,10,1,1,0,'reg',varBin=False)
+        makeplot("reg_TopenuCR_resolved_cutFlow",'h_reg_TopenuCR_resolved_cutFlow','cutflow',1,10,1,1,0,'reg',varBin=False)
+        makeplot("reg_ZeeCR_resolved_cutFlow",'h_reg_ZeeCR_resolved_cutFlow','cutflow',1,10,1,1,0,'reg',varBin=False)
+
+
+else:
+    if isBoosted:
+        makeplot("reg_WmunuCR_boosted_cutFlow",'h_reg_WmunuCR_boosted_cutFlow','cutflow',1,10,1,1,0,'reg',varBin=False)
+        makeplot("reg_TopmunuCR_boosted_cutFlow",'h_reg_TopmunuCR_boosted_cutFlow','cutflow',1,10,1,1,0,'reg',varBin=False)
+        makeplot("reg_ZmumuCR_boosted_cutFlow",'h_reg_ZmumuCR_boosted_cutFlow','cutflow',1,10,1,1,0,'reg',varBin=False)
+        makeplot("h_reg_SBand_boosted_cutFlow",'h_reg_SBand_boosted_cutFlow','cutflow',1,10,1,1,0,'reg',varBin=False)
+    else:
+        makeplot("reg_WmunuCR_resolved_cutFlow",'h_reg_WmunuCR_resolved_cutFlow','cutflow',1,10,1,1,0,'reg',varBin=False)
+        makeplot("reg_TopmunuCR_resolved_cutFlow",'h_reg_TopmunuCR_resolved_cutFlow','cutflow',1,10,1,1,0,'reg',varBin=False)
+        makeplot("reg_ZmumuCR_resolved_cutFlow",'h_reg_ZmumuCR_resolved_cutFlow','cutflow',1,10,1,1,0,'reg',varBin=False)
+        makeplot("h_reg_SBand_resolved_cutFlow",'h_reg_SBand_resolved_cutFlow','cutflow',1,10,1,1,0,'reg',varBin=False)
+
+
 for reg in regions:
-    if makeSRplots:
+    if makeSRplots or makeSBandplots:
         #makeplot("reg_"+reg+"_min_dPhi",'h_reg_'+reg+'_min_dPhi','#dPhi(ak4,met)',0,4,1,0,0,'reg',varBin=False)#FJetCSV  min_dphi_jets
         #makeplot("reg_"+reg+"_min_dphi_jets",'h_reg_'+reg+'_min_dphi_jets','#dPhi(ak4,ak8)',0,4,1,1,0,'reg',varBin=False)
         makeplot("reg_"+reg+"_nJets",'h_reg_'+reg+'_nJets','nJets',0,5,1,0,0,'reg',varBin=False)
-        makeplot("reg_"+reg+"_MET",'h_reg_'+reg+'_MET','MET (GeV)',200.,1000.,1,1,0,'reg',varBin=False)
-        
-        makeplot("reg_"+reg+"_MET_btagweight_up",'h_reg_'+reg+'_MET_btagweight_up','MET (GeV)',200.,1000.,1,1,0,'reg',varBin=False)
-        makeplot("reg_"+reg+"_MET_btagweight_down",'h_reg_'+reg+'_MET_btagweight_down','MET (GeV)',200.,1000.,1,1,0,'reg',varBin=False)
-        makeplot("reg_"+reg+"_MET_ewkweight_up",'h_reg_'+reg+'_MET_ewkweight_up','MET (GeV)',200.,1000.,1,1,0,'reg',varBin=False)
-        makeplot("reg_"+reg+"_MET_ewkweight_down",'h_reg_'+reg+'_MET_ewkweight_down','MET (GeV)',200.,1000.,1,1,0,'reg',varBin=False)
-        makeplot("reg_"+reg+"_MET_toppTweight_up",'h_reg_'+reg+'_MET_toppTweight_up','MET (GeV)',200.,1000.,1,1,0,'reg',varBin=False)
-        makeplot("reg_"+reg+"_MET_toppTweight_down",'h_reg_'+reg+'_MET_toppTweight_down','MET (GeV)',200.,1000.,1,1,0,'reg',varBin=False)
-        makeplot("reg_"+reg+"_MET_metTrigweight_up",'h_reg_'+reg+'_MET_metTrigweight_up','MET (GeV)',200.,1000.,1,1,0,'reg',varBin=False)
-        makeplot("reg_"+reg+"_MET_metTrigweight_down",'h_reg_'+reg+'_MET_metTrigweight_down','MET (GeV)',200.,1000.,1,1,0,'reg',varBin=False)
-        makeplot("reg_"+reg+"_MET_puweight_up",'h_reg_'+reg+'_MET_puweight_up','MET (GeV)',200.,1000.,1,1,0,'reg',varBin=False)
-        makeplot("reg_"+reg+"_MET_puweight_down",'h_reg_'+reg+'_MET_puweight_down','MET (GeV)',200.,1000.,1,1,0,'reg',varBin=False)
-        makeplot("reg_"+reg+"_MET_jec_up",'h_reg_'+reg+'_MET_jec_up','MET (GeV)',200.,1000.,1,1,0,'reg',varBin=False)
-        makeplot("reg_"+reg+"_MET_jec_down",'h_reg_'+reg+'_MET_jec_down','MET (GeV)',200.,1000.,1,1,0,'reg',varBin=False)
-        makeplot("reg_"+reg+"_MET_Res_up",'h_reg_'+reg+'_MET_Res_up','MET (GeV)',200.,1000.,1,1,0,'reg',varBin=False)
-        makeplot("reg_"+reg+"_MET_Res_down",'h_reg_'+reg+'_MET_Res_down','MET (GeV)',200.,1000.,1,1,0,'reg',varBin=False)
-        makeplot("reg_"+reg+"_MET_En_up",'h_reg_'+reg+'_MET_En_up','MET (GeV)',200.,1000.,1,1,0,'reg',varBin=False)
-        makeplot("reg_"+reg+"_MET_En_down",'h_reg_'+reg+'_MET_En_down','MET (GeV)',200.,1000.,1,1,0,'reg',varBin=False)
-        
+        makeplot("reg_"+reg+"_MET",'h_reg_'+reg+'_MET','p^{miss}_{T} (GeV)',200.,1000.,1,1,0,'reg',varBin=False)
+
+        if makeSyst:
+            makeplot("reg_"+reg+"_MET_btagweight_up",'h_reg_'+reg+'_MET_btagweight_up','p^{miss}_{T} (GeV)',200.,1000.,1,1,0,'reg',varBin=False)
+            makeplot("reg_"+reg+"_MET_btagweight_down",'h_reg_'+reg+'_MET_btagweight_down','p^{miss}_{T} (GeV)',200.,1000.,1,1,0,'reg',varBin=False)
+            makeplot("reg_"+reg+"_MET_ewkweight_up",'h_reg_'+reg+'_MET_ewkweight_up','p^{miss}_{T} (GeV)',200.,1000.,1,1,0,'reg',varBin=False)
+            makeplot("reg_"+reg+"_MET_ewkweight_down",'h_reg_'+reg+'_MET_ewkweight_down','p^{miss}_{T} (GeV)',200.,1000.,1,1,0,'reg',varBin=False)
+            makeplot("reg_"+reg+"_MET_toppTweight_up",'h_reg_'+reg+'_MET_toppTweight_up','p^{miss}_{T} (GeV)',200.,1000.,1,1,0,'reg',varBin=False)
+            makeplot("reg_"+reg+"_MET_toppTweight_down",'h_reg_'+reg+'_MET_toppTweight_down','p^{miss}_{T} (GeV)',200.,1000.,1,1,0,'reg',varBin=False)
+            makeplot("reg_"+reg+"_MET_metTrigweight_up",'h_reg_'+reg+'_MET_metTrigweight_up','p^{miss}_{T} (GeV)',200.,1000.,1,1,0,'reg',varBin=False)
+            makeplot("reg_"+reg+"_MET_metTrigweight_down",'h_reg_'+reg+'_MET_metTrigweight_down','p^{miss}_{T} (GeV)',200.,1000.,1,1,0,'reg',varBin=False)
+            makeplot("reg_"+reg+"_MET_puweight_up",'h_reg_'+reg+'_MET_puweight_up','p^{miss}_{T} (GeV)',200.,1000.,1,1,0,'reg',varBin=False)
+            makeplot("reg_"+reg+"_MET_puweight_down",'h_reg_'+reg+'_MET_puweight_down','p^{miss}_{T} (GeV)',200.,1000.,1,1,0,'reg',varBin=False)
+            makeplot("reg_"+reg+"_MET_jec_up",'h_reg_'+reg+'_MET_jec_up','p^{miss}_{T} (GeV)',200.,1000.,1,1,0,'reg',varBin=False)
+            makeplot("reg_"+reg+"_MET_jec_down",'h_reg_'+reg+'_MET_jec_down','p^{miss}_{T} (GeV)',200.,1000.,1,1,0,'reg',varBin=False)
+            makeplot("reg_"+reg+"_MET_Res_up",'h_reg_'+reg+'_MET_Res_up','p^{miss}_{T} (GeV)',200.,1000.,1,1,0,'reg',varBin=False)
+            makeplot("reg_"+reg+"_MET_Res_down",'h_reg_'+reg+'_MET_Res_down','p^{miss}_{T} (GeV)',200.,1000.,1,1,0,'reg',varBin=False)
+            makeplot("reg_"+reg+"_MET_En_up",'h_reg_'+reg+'_MET_En_up','p^{miss}_{T} (GeV)',200.,1000.,1,1,0,'reg',varBin=False)
+            makeplot("reg_"+reg+"_MET_En_down",'h_reg_'+reg+'_MET_En_down','p^{miss}_{T} (GeV)',200.,1000.,1,1,0,'reg',varBin=False)
+
         if isBoosted:
+            makeplot("reg_"+reg+"_FJetN2b1",'h_reg_'+reg+'_FJetN2b1','N2b1',-1,1,1,0,0,'reg',varBin=False)
+            makeplot("reg_"+reg+"_N2DDT",'h_reg_'+reg+'_N2DDT','N2DDT',-1,1,1,0,0,'reg',varBin=False)
+
             makeplot("reg_"+reg+"_FJetPt",'h_reg_'+reg+'_FJetPt','FATJET p_{T} (GeV)',200.,1000.,1,1,0,'reg',varBin=False)
             makeplot("reg_"+reg+"_FJetEta",'h_reg_'+reg+'_FJetEta','FATJET #eta',-2.5,2.5,1,0,0,'reg',varBin=False)
             makeplot("reg_"+reg+"_FJetPhi",'h_reg_'+reg+'_FJetPhi','FATJET #phi',-3.14,3.14,1,0,0,'reg',varBin=False)
@@ -1109,72 +1069,75 @@ for reg in regions:
             makeplot("reg_"+reg+"_Jet1Phi",'h_reg_'+reg+'_Jet1Phi','Jet1 #phi',-3.14,3.14,1,0,0,'reg',varBin=False)
             makeplot("reg_"+reg+"_DiJetMass",'h_reg_'+reg+'_DiJetMass','Mbb',0,400,1,0,0,'reg',varBin=False)
 
-    elif makeSBandplots:
-        # makeplot("reg_"+reg+"_min_dPhi",'h_reg_'+reg+'_min_dPhi','#dPhi(ak4,met)',0,4,1,1,0,'reg',varBin=False)#FJetCSV
-        
-        makeplot("reg_"+reg+"_nJets",'h_reg_'+reg+'_nJets','nJets',0,5,1,0,0,'reg',varBin=False)
-        makeplot("reg_"+reg+"_MET",'h_reg_'+reg+'_MET','MET (GeV)',200.,1000.,1,1,0,'reg',varBin=False)
-        makeplot("reg_"+reg+"_MET_btagweight_up",'h_reg_'+reg+'_MET_btagweight_up','MET (GeV)',200.,1000.,1,1,0,'reg',varBin=False)
-        makeplot("reg_"+reg+"_MET_btagweight_down",'h_reg_'+reg+'_MET_btagweight_down','MET (GeV)',200.,1000.,1,1,0,'reg',varBin=False)
-        makeplot("reg_"+reg+"_MET_ewkweight_up",'h_reg_'+reg+'_MET_ewkweight_up','MET (GeV)',200.,1000.,1,1,0,'reg',varBin=False)
-        makeplot("reg_"+reg+"_MET_ewkweight_down",'h_reg_'+reg+'_MET_ewkweight_down','MET (GeV)',200.,1000.,1,1,0,'reg',varBin=False)
-        makeplot("reg_"+reg+"_MET_toppTweight_up",'h_reg_'+reg+'_MET_toppTweight_up','MET (GeV)',200.,1000.,1,1,0,'reg',varBin=False)
-        makeplot("reg_"+reg+"_MET_toppTweight_down",'h_reg_'+reg+'_MET_toppTweight_down','MET (GeV)',200.,1000.,1,1,0,'reg',varBin=False)
-        makeplot("reg_"+reg+"_MET_metTrigweight_up",'h_reg_'+reg+'_MET_metTrigweight_up','MET (GeV)',200.,1000.,1,1,0,'reg',varBin=False)
-        makeplot("reg_"+reg+"_MET_metTrigweight_down",'h_reg_'+reg+'_MET_metTrigweight_down','MET (GeV)',200.,1000.,1,1,0,'reg',varBin=False)
-        makeplot("reg_"+reg+"_MET_puweight_up",'h_reg_'+reg+'_MET_puweight_up','MET (GeV)',200.,1000.,1,1,0,'reg',varBin=False)
-        makeplot("reg_"+reg+"_MET_puweight_down",'h_reg_'+reg+'_MET_puweight_down','MET (GeV)',200.,1000.,1,1,0,'reg',varBin=False)
-        makeplot("reg_"+reg+"_MET_jec_up",'h_reg_'+reg+'_MET_jec_up','MET (GeV)',200.,1000.,1,1,0,'reg',varBin=False)
-        makeplot("reg_"+reg+"_MET_jec_down",'h_reg_'+reg+'_MET_jec_down','MET (GeV)',200.,1000.,1,1,0,'reg',varBin=False)
-        makeplot("reg_"+reg+"_MET_Res_up",'h_reg_'+reg+'_MET_Res_up','MET (GeV)',200.,1000.,1,1,0,'reg',varBin=False)
-        makeplot("reg_"+reg+"_MET_Res_down",'h_reg_'+reg+'_MET_Res_down','MET (GeV)',200.,1000.,1,1,0,'reg',varBin=False)
-        makeplot("reg_"+reg+"_MET_En_up",'h_reg_'+reg+'_MET_En_up','MET (GeV)',200.,1000.,1,1,0,'reg',varBin=False)
-        makeplot("reg_"+reg+"_MET_En_down",'h_reg_'+reg+'_MET_En_down','MET (GeV)',200.,1000.,1,1,0,'reg',varBin=False)
-        
-        if isBoosted:
-            makeplot("reg_"+reg+"_FJetMass",'h_reg_'+reg+'_FJetMass','SDMass',0,350,1,0,0,'reg',varBin=False)#FJetCSV
-            makeplot("reg_"+reg+"_FJetCSV",'h_reg_'+reg+'_FJetCSV','deep double B tagger',0,1,1,0,0,'reg',varBin=False)#FJetCSV
-            makeplot("reg_"+reg+"_FJetPt",'h_reg_'+reg+'_FJetPt','FATJET p_{T} (GeV)',200.,1000.,1,1,0,'reg',varBin=False)
-            makeplot("reg_"+reg+"_FJetEta",'h_reg_'+reg+'_FJetEta','FATJET #eta',-2.5,2.5,1,0,0,'reg',varBin=False)
-            makeplot("reg_"+reg+"_FJetPhi",'h_reg_'+reg+'_FJetPhi','FATJET #phi',-3.14,3.14,1,0,0,'reg',varBin=False)
-        if not isBoosted:
-            makeplot("reg_"+reg+"_Jet1Pt",'h_reg_'+reg+'_Jet1Pt','Jet1 p_{T}',0.0,1000.,1,1,0,'reg',varBin=False)
-            makeplot("reg_"+reg+"_Jet1Eta",'h_reg_'+reg+'_Jet1Eta','Jet1 #eta',-2.5,2.5,1,0,0,'reg',varBin=False)
-            makeplot("reg_"+reg+"_Jet1Phi",'h_reg_'+reg+'_Jet1Phi','Jet1 #phi',-3.14,3.14,1,0,0,'reg',varBin=False)
-            makeplot("reg_"+reg+"_DiJetMass",'h_reg_'+reg+'_DiJetMass','Mbb',0,400,1,0,0,'reg',varBin=False)
+    # elif makeSBandplots:
+    #     # makeplot("reg_"+reg+"_min_dPhi",'h_reg_'+reg+'_min_dPhi','#dPhi(ak4,met)',0,4,1,1,0,'reg',varBin=False)#FJetCSV
+    #
+    #     makeplot("reg_"+reg+"_nJets",'h_reg_'+reg+'_nJets','nJets',0,5,1,0,0,'reg',varBin=False)
+    #     makeplot("reg_"+reg+"_MET",'h_reg_'+reg+'_MET','MET (GeV)',200.,1000.,1,1,0,'reg',varBin=False)
+    #     makeplot("reg_"+reg+"_MET_btagweight_up",'h_reg_'+reg+'_MET_btagweight_up','MET (GeV)',200.,1000.,1,1,0,'reg',varBin=False)
+    #     makeplot("reg_"+reg+"_MET_btagweight_down",'h_reg_'+reg+'_MET_btagweight_down','MET (GeV)',200.,1000.,1,1,0,'reg',varBin=False)
+    #     makeplot("reg_"+reg+"_MET_ewkweight_up",'h_reg_'+reg+'_MET_ewkweight_up','MET (GeV)',200.,1000.,1,1,0,'reg',varBin=False)
+    #     makeplot("reg_"+reg+"_MET_ewkweight_down",'h_reg_'+reg+'_MET_ewkweight_down','MET (GeV)',200.,1000.,1,1,0,'reg',varBin=False)
+    #     makeplot("reg_"+reg+"_MET_toppTweight_up",'h_reg_'+reg+'_MET_toppTweight_up','MET (GeV)',200.,1000.,1,1,0,'reg',varBin=False)
+    #     makeplot("reg_"+reg+"_MET_toppTweight_down",'h_reg_'+reg+'_MET_toppTweight_down','MET (GeV)',200.,1000.,1,1,0,'reg',varBin=False)
+    #     makeplot("reg_"+reg+"_MET_metTrigweight_up",'h_reg_'+reg+'_MET_metTrigweight_up','MET (GeV)',200.,1000.,1,1,0,'reg',varBin=False)
+    #     makeplot("reg_"+reg+"_MET_metTrigweight_down",'h_reg_'+reg+'_MET_metTrigweight_down','MET (GeV)',200.,1000.,1,1,0,'reg',varBin=False)
+    #     makeplot("reg_"+reg+"_MET_puweight_up",'h_reg_'+reg+'_MET_puweight_up','MET (GeV)',200.,1000.,1,1,0,'reg',varBin=False)
+    #     makeplot("reg_"+reg+"_MET_puweight_down",'h_reg_'+reg+'_MET_puweight_down','MET (GeV)',200.,1000.,1,1,0,'reg',varBin=False)
+    #     makeplot("reg_"+reg+"_MET_jec_up",'h_reg_'+reg+'_MET_jec_up','MET (GeV)',200.,1000.,1,1,0,'reg',varBin=False)
+    #     makeplot("reg_"+reg+"_MET_jec_down",'h_reg_'+reg+'_MET_jec_down','MET (GeV)',200.,1000.,1,1,0,'reg',varBin=False)
+    #     makeplot("reg_"+reg+"_MET_Res_up",'h_reg_'+reg+'_MET_Res_up','MET (GeV)',200.,1000.,1,1,0,'reg',varBin=False)
+    #     makeplot("reg_"+reg+"_MET_Res_down",'h_reg_'+reg+'_MET_Res_down','MET (GeV)',200.,1000.,1,1,0,'reg',varBin=False)
+    #     makeplot("reg_"+reg+"_MET_En_up",'h_reg_'+reg+'_MET_En_up','MET (GeV)',200.,1000.,1,1,0,'reg',varBin=False)
+    #     makeplot("reg_"+reg+"_MET_En_down",'h_reg_'+reg+'_MET_En_down','MET (GeV)',200.,1000.,1,1,0,'reg',varBin=False)
+    #
+    #     if isBoosted:
+    #         makeplot("reg_"+reg+"_FJetMass",'h_reg_'+reg+'_FJetMass','SDMass',0,350,1,0,0,'reg',varBin=False)#FJetCSV
+    #         makeplot("reg_"+reg+"_FJetCSV",'h_reg_'+reg+'_FJetCSV','deep double B tagger',0,1,1,0,0,'reg',varBin=False)#FJetCSV
+    #         makeplot("reg_"+reg+"_FJetPt",'h_reg_'+reg+'_FJetPt','FATJET p_{T} (GeV)',200.,1000.,1,1,0,'reg',varBin=False)
+    #         makeplot("reg_"+reg+"_FJetEta",'h_reg_'+reg+'_FJetEta','FATJET #eta',-2.5,2.5,1,0,0,'reg',varBin=False)
+    #         makeplot("reg_"+reg+"_FJetPhi",'h_reg_'+reg+'_FJetPhi','FATJET #phi',-3.14,3.14,1,0,0,'reg',varBin=False)
+    #     if not isBoosted:
+    #         makeplot("reg_"+reg+"_Jet1Pt",'h_reg_'+reg+'_Jet1Pt','Jet1 p_{T}',0.0,1000.,1,1,0,'reg',varBin=False)
+    #         makeplot("reg_"+reg+"_Jet1Eta",'h_reg_'+reg+'_Jet1Eta','Jet1 #eta',-2.5,2.5,1,0,0,'reg',varBin=False)
+    #         makeplot("reg_"+reg+"_Jet1Phi",'h_reg_'+reg+'_Jet1Phi','Jet1 #phi',-3.14,3.14,1,0,0,'reg',varBin=False)
+    #         makeplot("reg_"+reg+"_DiJetMass",'h_reg_'+reg+'_DiJetMass','Mbb',0,400,1,0,0,'reg',varBin=False)
 
 
     else:
-        makeplot("reg_"+reg+"_Recoil",'h_reg_'+reg+'_Recoil','Recoil (GeV)',200.,1000.,1,1,0,'reg',varBin=False)
-        
-        makeplot("reg_"+reg+"_Recoil_btagweight_up",'h_reg_'+reg+'_Recoil_btagweight_up','MET (GeV)',200.,1000.,1,1,0,'reg',varBin=False)
-        makeplot("reg_"+reg+"_Recoil_btagweight_down",'h_reg_'+reg+'_Recoil_btagweight_down','MET (GeV)',200.,1000.,1,1,0,'reg',varBin=False)
-        makeplot("reg_"+reg+"_Recoil_ewkweight_up",'h_reg_'+reg+'_Recoil_ewkweight_up','MET (GeV)',200.,1000.,1,1,0,'reg',varBin=False)
-        makeplot("reg_"+reg+"_Recoil_ewkweight_down",'h_reg_'+reg+'_Recoil_ewkweight_down','MET (GeV)',200.,1000.,1,1,0,'reg',varBin=False)
-        makeplot("reg_"+reg+"_Recoil_toppTweight_up",'h_reg_'+reg+'_Recoil_toppTweight_up','MET (GeV)',200.,1000.,1,1,0,'reg',varBin=False)
-        makeplot("reg_"+reg+"_Recoil_toppTweight_down",'h_reg_'+reg+'_Recoil_toppTweight_down','MET (GeV)',200.,1000.,1,1,0,'reg',varBin=False)
-        makeplot("reg_"+reg+"_Recoil_metTrigweight_up",'h_reg_'+reg+'_Recoil_metTrigweight_up','MET (GeV)',200.,1000.,1,1,0,'reg',varBin=False)
-        makeplot("reg_"+reg+"_Recoil_metTrigweight_down",'h_reg_'+reg+'_Recoil_metTrigweight_down','MET (GeV)',200.,1000.,1,1,0,'reg',varBin=False)
-        makeplot("reg_"+reg+"_Recoil_puweight_up",'h_reg_'+reg+'_Recoil_puweight_up','MET (GeV)',200.,1000.,1,1,0,'reg',varBin=False)
-        makeplot("reg_"+reg+"_Recoil_puweight_down",'h_reg_'+reg+'_Recoil_puweight_down','MET (GeV)',200.,1000.,1,1,0,'reg',varBin=False)
-        makeplot("reg_"+reg+"_Recoil_jec_up",'h_reg_'+reg+'_Recoil_jec_up','MET (GeV)',200.,1000.,1,1,0,'reg',varBin=False)
-        makeplot("reg_"+reg+"_Recoil_jec_down",'h_reg_'+reg+'_Recoil_jec_down','MET (GeV)',200.,1000.,1,1,0,'reg',varBin=False)
-        makeplot("reg_"+reg+"_Recoil_Res_up",'h_reg_'+reg+'_Recoil_Res_up','MET (GeV)',200.,1000.,1,1,0,'reg',varBin=False)
-        makeplot("reg_"+reg+"_Recoil_Res_down",'h_reg_'+reg+'_Recoil_Res_down','MET (GeV)',200.,1000.,1,1,0,'reg',varBin=False)
-        makeplot("reg_"+reg+"_Recoil_En_up",'h_reg_'+reg+'_Recoil_En_up','MET (GeV)',200.,1000.,1,1,0,'reg',varBin=False)
-        makeplot("reg_"+reg+"_Recoil_En_down",'h_reg_'+reg+'_Recoil_En_down','MET (GeV)',200.,1000.,1,1,0,'reg',varBin=False)
-        makeplot("reg_"+reg+"_Recoil_lepweight_up",'h_reg_'+reg+'_Recoil_lepweight_up','MET (GeV)',200.,1000.,1,1,0,'reg',varBin=False)
-        makeplot("reg_"+reg+"_Recoil_lepweight_down",'h_reg_'+reg+'_Recoil_lepweight_down','MET (GeV)',200.,1000.,1,1,0,'reg',varBin=False)
-        
-        makeplot("reg_"+reg+"_MET",'h_reg_'+reg+'_MET','MET (GeV)',0.0,1000.,1,1,0,'reg',varBin=False)
+        makeplot("reg_"+reg+"_Recoil",'h_reg_'+reg+'_Recoil','U (GeV)',200.,1000.,1,1,0,'reg',varBin=False)
+        if makeSyst:
+            makeplot("reg_"+reg+"_Recoil_btagweight_up",'h_reg_'+reg+'_Recoil_btagweight_up','U (GeV)',200.,1000.,1,1,0,'reg',varBin=False)
+            makeplot("reg_"+reg+"_Recoil_btagweight_down",'h_reg_'+reg+'_Recoil_btagweight_down','U (GeV)',200.,1000.,1,1,0,'reg',varBin=False)
+            makeplot("reg_"+reg+"_Recoil_ewkweight_up",'h_reg_'+reg+'_Recoil_ewkweight_up','U (GeV)',200.,1000.,1,1,0,'reg',varBin=False)
+            makeplot("reg_"+reg+"_Recoil_ewkweight_down",'h_reg_'+reg+'_Recoil_ewkweight_down','U (GeV)',200.,1000.,1,1,0,'reg',varBin=False)
+            makeplot("reg_"+reg+"_Recoil_toppTweight_up",'h_reg_'+reg+'_Recoil_toppTweight_up','U (GeV)',200.,1000.,1,1,0,'reg',varBin=False)
+            makeplot("reg_"+reg+"_Recoil_toppTweight_down",'h_reg_'+reg+'_Recoil_toppTweight_down','U (GeV)',200.,1000.,1,1,0,'reg',varBin=False)
+            makeplot("reg_"+reg+"_Recoil_metTrigweight_up",'h_reg_'+reg+'_Recoil_metTrigweight_up','U (GeV)',200.,1000.,1,1,0,'reg',varBin=False)
+            makeplot("reg_"+reg+"_Recoil_metTrigweight_down",'h_reg_'+reg+'_Recoil_metTrigweight_down','U (GeV)',200.,1000.,1,1,0,'reg',varBin=False)
+            makeplot("reg_"+reg+"_Recoil_puweight_up",'h_reg_'+reg+'_Recoil_puweight_up','U (GeV)',200.,1000.,1,1,0,'reg',varBin=False)
+            makeplot("reg_"+reg+"_Recoil_puweight_down",'h_reg_'+reg+'_Recoil_puweight_down','U (GeV)',200.,1000.,1,1,0,'reg',varBin=False)
+            makeplot("reg_"+reg+"_Recoil_jec_up",'h_reg_'+reg+'_Recoil_jec_up','U (GeV)',200.,1000.,1,1,0,'reg',varBin=False)
+            makeplot("reg_"+reg+"_Recoil_jec_down",'h_reg_'+reg+'_Recoil_jec_down','U (GeV)',200.,1000.,1,1,0,'reg',varBin=False)
+            makeplot("reg_"+reg+"_Recoil_Res_up",'h_reg_'+reg+'_Recoil_Res_up','U (GeV)',200.,1000.,1,1,0,'reg',varBin=False)
+            makeplot("reg_"+reg+"_Recoil_Res_down",'h_reg_'+reg+'_Recoil_Res_down','U (GeV)',200.,1000.,1,1,0,'reg',varBin=False)
+            makeplot("reg_"+reg+"_Recoil_En_up",'h_reg_'+reg+'_Recoil_En_up','U (GeV)',200.,1000.,1,1,0,'reg',varBin=False)
+            makeplot("reg_"+reg+"_Recoil_En_down",'h_reg_'+reg+'_Recoil_En_down','U (GeV)',200.,1000.,1,1,0,'reg',varBin=False)
+            makeplot("reg_"+reg+"_Recoil_lepweight_up",'h_reg_'+reg+'_Recoil_lepweight_up','U (GeV)',200.,1000.,1,1,0,'reg',varBin=False)
+            makeplot("reg_"+reg+"_Recoil_lepweight_down",'h_reg_'+reg+'_Recoil_lepweight_down','U (GeV)',200.,1000.,1,1,0,'reg',varBin=False)
+
+        makeplot("reg_"+reg+"_MET",'h_reg_'+reg+'_MET','p^{miss}_{T} (GeV)',0.0,1000.,1,1,0,'reg',varBin=False)
         makeplot("reg_"+reg+"_min_dPhi",'h_reg_'+reg+'_min_dPhi','#dPhi(ak4,met)',0,4,1,0,0,'reg',varBin=False)#FJetCSV
         makeplot("reg_"+reg+"_met_Phi",'h_reg_'+reg+'_met_Phi','met phi',-4,4,1,0,0,'reg',varBin=False)#FJetCSV
         if isBoosted:
+            makeplot("reg_"+reg+"_FJetN2b1",'h_reg_'+reg+'_FJetN2b1','N2b1',-1,1,1,0,0,'reg',varBin=False)
+            makeplot("reg_"+reg+"_N2DDT",'h_reg_'+reg+'_N2DDT','N2DDT',-1,1,1,0,0,'reg',varBin=False)
+
             makeplot("reg_"+reg+"_FJetPt",'h_reg_'+reg+'_FJetPt','FATJET p_{T} (GeV)',200.,1000.,1,1,0,'reg',varBin=False)
             makeplot("reg_"+reg+"_FJetEta",'h_reg_'+reg+'_FJetEta','FATJET #eta',-2.5,2.5,1,0,0,'reg',varBin=False)
             makeplot("reg_"+reg+"_FJetPhi",'h_reg_'+reg+'_FJetPhi','FATJET #phi',-3.14,3.14,1,0,0,'reg',varBin=False)
             makeplot("reg_"+reg+"_FJetMass",'h_reg_'+reg+'_FJetMass','SDMass',100,150,1,0,0,'reg',varBin=False)
-            makeplot("reg_"+reg+"_FJetCSV",'h_reg_'+reg+'_FJetCSV','deep double B tagger',0,1,1,0,0,'reg',varBin=False)#FJetCSV
+            makeplot("reg_"+reg+"_FJetCSV",'h_reg_'+reg+'_FJetCSV','DDB tagger',0,1,1,0,0,'reg',varBin=False)#FJetCSV
         if not isBoosted:
             makeplot("reg_"+reg+"_Jet1Pt",'h_reg_'+reg+'_Jet1Pt','Jet1 p_{T}',0.0,1000.,1,1,0,'reg',varBin=False)
             makeplot("reg_"+reg+"_Jet1Eta",'h_reg_'+reg+'_Jet1Eta','Jet1 #eta',-2.5,2.5,1,0,0,'reg',varBin=False)
@@ -1193,19 +1156,8 @@ for reg in regions:
             makeplot("reg_"+reg+"_lep2_eta",'h_reg_'+reg+'_lep2_eta','lepton2 #eta',-2.5,2.5,1,0,0,'reg',varBin=False)
             makeplot("reg_"+reg+"_lep2_Phi",'h_reg_'+reg+'_lep2_Phi','lepton2 #phi',-3.14,3.14,1,0,0,'reg',varBin=False)
 
-
-        # if 'SBand' in reg:
-        #     # makeplot("reg_"+reg+"_min_dPhi",'h_reg_'+reg+'_min_dPhi','#dPhi(ak4,met)',0,4,1,1,0,'reg',varBin=False)#FJetCSV
-        #
-        #     makeplot("reg_"+reg+"_nJets",'h_reg_'+reg+'_nJets','nJets',0,5,1,0,0,'reg',varBin=False)
-        #     makeplot("reg_"+reg+"_MET",'h_reg_'+reg+'_MET','MET (GeV)',200.,1000.,1,1,0,'reg',varBin=False)
-        #     makeplot("reg_"+reg+"_FJetMass",'h_reg_'+reg+'_FJetMass','SDMass',0,350,1,0,0,'reg',varBin=False)#FJetCSV
-        #     makeplot("reg_"+reg+"_FJetCSV",'h_reg_'+reg+'_FJetCSV','deep double B tagger',0,1,1,0,0,'reg',varBin=False)#FJetCSV
-        #     makeplot("reg_"+reg+"_FJetPt",'h_reg_'+reg+'_FJetPt','FATJET p_{T} (GeV)',200.,1000.,1,1,0,'reg',varBin=False)
-        #     makeplot("reg_"+reg+"_FJetEta",'h_reg_'+reg+'_FJetEta','FATJET #eta',-2.5,2.5,1,0,0,'reg',varBin=False)
-        #     makeplot("reg_"+reg+"_FJetPhi",'h_reg_'+reg+'_FJetPhi','FATJET #phi',-3.14,3.14,1,0,0,'reg',varBin=False)
-        #
-        #     # makeplot("reg_"+reg+"_Jet1Pt",'h_reg_'+reg+'_Jet1Pt','Jet1 p_{T}',0.0,1000.,1,1,0,'reg',varBin=False)
-        #     # makeplot("reg_"+reg+"_Jet1Eta",'h_reg_'+reg+'_Jet1Eta','Jet1 #eta',-2.5,2.5,1,0,0,'reg',varBin=False)
-        #     # makeplot("reg_"+reg+"_Jet1Phi",'h_reg_'+reg+'_Jet1Phi','Jet1 #phi',-3.14,3.14,1,0,0,'reg',varBin=False)
-        #     # makeplot("reg_"+reg+"_DiJetMass",'h_reg_'+reg+'_DiJetMass','Mbb',0,400,1,0,0,'reg',varBin=False)
+        if 'Topmu' in reg or 'Tope' in reg or 'Wmu' in reg or 'We' in reg:
+            makeplot("reg_"+reg+"_Wmass",'h_reg_'+reg+'_Wmass','Wmass',0,200,1,0,0,'reg',varBin=False)
+	if not isBoosted:
+	    makeplot("reg_"+reg+"_before_nPV",'h_reg_'+reg+'_before_nPV','noReweight_nPV',0,100,1,0,0,'reg',varBin=False)
+            makeplot("reg_"+reg+"_after_nPV",'h_reg_'+reg+'_after_nPV','Reweight_nPV',0,100,1,0,0,'reg',varBin=False)
