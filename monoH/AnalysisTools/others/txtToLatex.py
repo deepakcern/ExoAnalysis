@@ -28,10 +28,11 @@ def dfTolatex(df,filename):
     df.to_csv(filename+'.tex',header=None, index=None, sep=' ', mode='w')
 
 def getdf(infile_2017,infile_2018):
-    headerlist2017 = ["process","and1","2017","and2"]
-    headerlist2018 = ["process","and3","2018","and4"]
+    headerlist2017 = ["process","and1","2017","extra1"]
+    headerlist2018 = ["process","and3","2018","extra2"]
     df2017 = pd.read_csv(infile_2017,names=headerlist2017)
     df2018 = pd.read_csv(infile_2018,names=headerlist2018)
+    df2017.drop("extra1",axis='columns', inplace=True)
     df2018.drop("process",axis='columns', inplace=True)
     df = df2017.join(df2018)
     df["hline"]="\hline" #ADD hline FOR LATEX
