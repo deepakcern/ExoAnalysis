@@ -2,10 +2,13 @@ import os
 import sys
 import datetime
 import sys, optparse
-import sample_xsec_2017 as sample_xsec
+#import sample_xsec_2017 as sample_xsec
+import sample_xsec_2017_GenXSecAnalyser as sample_xsec
 import ROOT as ROOT
 import array
 from plotStyle import myCanvas1D, SetCMSAxis, ExtraText, drawenergy1D, SetLegend
+from syst_dic import dic as syst_dict
+import math
 
 usage = "usage: %prog [options] arg1 arg2"
 parser = optparse.OptionParser(usage)
@@ -60,9 +63,11 @@ else:
 
 if options.category=="B":
     cat="boosted"
+    C='B'
 
 if options.category=="R":
     cat="resolved"
+    C='R'
 
 
 if options.verbose==None:
@@ -88,8 +93,8 @@ os.system('mkdir -p'+' '+str(datestr)+'/monoHPdf')
 os.system('mkdir -p'+' '+str(datestr)+'/monoHROOT')
 
 
-path='/afs/cern.ch/work/d/dekumar/public/monoH/monoHbbPlottingFiles/CMSSW_10_3_0/src/HistFiles/monohbb.v06.00.03.2017_B_N2ddtApplied_remake_merged'
-signal_path = '/afs/cern.ch/work/d/dekumar/public/monoH/monoHbbPlottingFiles/CMSSW_10_3_0/src/HistFiles/monohbb.v06.00.03.2017_Signal_N2ddtApplied'
+path='/afs/cern.ch/work/d/dekumar/public/monoH/monoHbbPlottingFiles/CMSSW_10_3_0/src/2017/HistFiles/monohbb.v07.02.00.2017_NoJER_R/'
+signal_path = '/afs/cern.ch/work/d/dekumar/public/monoH/monoHbbPlottingFiles/CMSSW_10_3_0/src/2017/HistFiles/monohbb.v06.00.05.2017_Signal'
 
 #os.system("ls "+path+" | cat > samplelist.txt")
 
@@ -99,6 +104,13 @@ boost = True
 drawSig = False
 
 CSList = {'ma_150_mA_300':1.606,'ma_150_mA_400':0.987,'ma_150_mA_500':0.5074,'ma_150_mA_600':0.2984,'ma_150_mA_1000':0.0419,'ma_150_mA_1200':0.0106,'ma_150_mA_1600':0.07525}
+
+def set_overflow(hist):
+    bin_num = hist.GetXaxis().GetNbins()
+    #print (bin_num)
+    hist.SetBinContent(bin_num,hist.GetBinContent(bin_num+1)+hist.GetBinContent(bin_num)) #Add overflow bin content to last bin
+    hist.SetBinContent(bin_num+1,0.)
+    return hist
 
 def getNormHist(f,reg,histName,col,lumi,XSec,cat):
     BR=0.588
@@ -188,7 +200,7 @@ def makeplot(loc,hist,titleX,XMIN,XMAX,Rebin,ISLOG,NORATIOPLOT,reg,varBin):
     elif 'Topmu' in hist:
         histolabel="#splitline{t#bar{t}(#mu)CR}{"+cat+"}"
     elif 'Tope' in hist:
-        histolabel="#splitline{t#bar{t}(e)}CR{"+cat+"}"
+        histolabel="#splitline{t#bar{t}(e)CR}{"+cat+"}"
     elif 'TopWe' in hist:
         histolabel="#splitline{t#bar{t} + W(e)CR}{"+cat+"}"
 
@@ -226,7 +238,7 @@ def makeplot(loc,hist,titleX,XMIN,XMAX,Rebin,ISLOG,NORATIOPLOT,reg,varBin):
     Files = [0] * 52
     for file in files.readlines()[:]:
         myFile=path+'/'+file.rstrip()
-        print ('running for file',myFile)
+        # print ('running for file',myFile)
         Files[count] = ROOT.TFile(myFile,'READ')
         h_temp=Files[count].Get(str(hist))
         h_total_weight=Files[count].Get('h_total_mcweight')
@@ -623,6 +635,11 @@ def makeplot(loc,hist,titleX,XMIN,XMAX,Rebin,ISLOG,NORATIOPLOT,reg,varBin):
         if (STopCount > 0):    hs.Add(STop,"hist");
         if (TTCount > 0):      hs.Add(Top,"hist");
 
+    if 'Recoil' in hist or 'Pt' in hist or 'pT' in hist or 'MET' in hist:
+        set_overflow(h_data)
+        for h_temp in total_hists:
+            set_overflow(h_temp)
+
     hasNoEvents=False
     Stackhist = hs.GetStack().Last()
 
@@ -650,7 +667,16 @@ def makeplot(loc,hist,titleX,XMIN,XMAX,Rebin,ISLOG,NORATIOPLOT,reg,varBin):
     h_err.SetLineColor(ROOT.kGray+3)
     h_err.SetMarkerSize(0)
     h_err.SetFillStyle(3013)
-
+    # for i in range(Stackhist.GetNbinsX()+2):
+    #     print('Stackhist.GetBinContent('+str(i)+')', Stackhist.GetBinContent(i))
+    h_stat_err = Stackhist.Clone("h_stat_err")
+    h_stat_err.Sumw2()
+    print("len(total_hists)",len(total_hists))
+    h_stat_err.SetFillColor(ROOT.kGray+3)
+    h_stat_err.SetLineColor(ROOT.kGray+3)
+    h_stat_err.SetMarkerSize(0)
+    h_stat_err.SetFillStyle(3013)
+    h_stat_syst_err = h_stat_err.Clone("h_stat_syst_err")
 
 
 
@@ -815,8 +841,79 @@ def makeplot(loc,hist,titleX,XMIN,XMAX,Rebin,ISLOG,NORATIOPLOT,reg,varBin):
             ratiostaterr.SetBinError(i, binerror)
         else:ratiostaterr.SetBinError(i, 999.)
 
-    ratioleg.AddEntry(ratiostaterr, "stat", "f")
+    # ratioleg.AddEntry(ratiostaterr, "stat", "f")
+#============================================= systematic error section ======================
+    if 'MET' in str(hist) or 'Recoil' in str(hist):
+        ratiosysterr = h_stat_err.Clone("ratiosysterr")
+        ratiosysterr.Sumw2()
+        ratiosysterr.SetStats(0)
+        ratiosysterr.SetMinimum(0)
+        ratiosysterr.SetMarkerSize(0)
+        ratiosysterr.SetFillColor(ROOT.kBlack)
+        ratiosysterr.SetFillStyle(3013)
+        if 'SR' in str(hist) and 'MET' in str(hist) and not 'up' in str(hist) and not 'down' in str(hist):
+            print 'bins',h_stat_err.GetNbinsX()
+            for i in range(h_stat_err.GetNbinsX()+1):
+                binerror2 = 0.0
+                ratiosysterr.SetBinContent(i, 0.0)
+                if (h_stat_err.GetBinContent(i) > 1e-6):
+                    # print syst_dict['MET_SR_'+C+'_'+'btagweight']
+                    # print i,'checking dic',syst_dict['MET_SR_'+C+'_'+'btagweight'][i-1]
+                    binerror2 = (pow(h_stat_err.GetBinError(i), 2) +
+                                 pow(syst_dict['MET_SR_'+C+'_'+'btagweight'][i-1]*h_stat_err.GetBinContent(i), 2) +
+                                 # pow(syst_dict['MET_SR_'+C+'_'+'ewkweight'][i-1]*h_stat_err.GetBinContent(i), 2) +
+                                 # pow(syst_dict['MET_SR_'+C+'_'+'toppTweight'][i-1]*h_stat_err.GetBinContent(i), 2) +
+                                 pow(syst_dict['MET_SR_'+C+'_'+'metTrigweight'][i-1]*h_stat_err.GetBinContent(i), 2) +
+                                 pow(syst_dict['MET_SR_'+C+'_'+'puweight'][i-1]*h_stat_err.GetBinContent(i), 2) +
+                                 pow(syst_dict['MET_SR_'+C+'_'+'jec'][i-1]*h_stat_err.GetBinContent(i), 2) +
+                                 pow(syst_dict['MET_SR_'+C+'_'+'En'][i-1]*h_stat_err.GetBinContent(i), 2))
+                    print 'binerror2',binerror2
+                    binerror = math.sqrt(binerror2)
+                    ratiosysterr.SetBinError(i, binerror/h_stat_err.GetBinContent(i))
+                    h_stat_syst_err.SetBinError(i, binerror/h_stat_err.GetBinContent(i))
+                else:
+                    ratiosysterr.SetBinError(i, 999.)
+                    h_stat_syst_err.SetBinError(i, 999.)
 
+        elif 'Recoil' in str(hist) and not 'up' in str(hist) and not 'down' in str(hist):
+            for i in range(1, h_stat_err.GetNbinsX()+1):
+                binerror2 = 0.0
+                ratiosysterr.SetBinContent(i, 0.0)
+                if (h_stat_err.GetBinContent(i) > 1e-6):
+                    binerror2 = (pow(h_stat_err.GetBinError(i), 2) +
+                                 pow(syst_dict['Recoil_'+reg+'_'+C+'_'+'btagweight'][i-1]*h_stat_err.GetBinContent(i), 2) +
+                                 # pow(syst_dict['Recoil_'+reg+'_'+C+'_'+'ewkweight'][i-1]*h_stat_err.GetBinContent(i), 2) +
+                                 # pow(syst_dict['Recoil_'+reg+'_'+C+'_'+'toppTweight'][i-1]*h_stat_err.GetBinContent(i), 2) +
+                                 pow(syst_dict['Recoil_'+reg+'_'+C+'_'+'metTrigweight'][i-1]*h_stat_err.GetBinContent(i), 2) +
+                                 pow(syst_dict['Recoil_'+reg+'_'+C+'_'+'puweight'][i-1]*h_stat_err.GetBinContent(i), 2) +
+                                 pow(syst_dict['Recoil_'+reg+'_'+C+'_'+'jec'][i-1]*h_stat_err.GetBinContent(i), 2) +
+                                 pow(syst_dict['Recoil_'+reg+'_'+C+'_'+'En'][i-1]*h_stat_err.GetBinContent(i), 2)+
+                                 pow(syst_dict['Recoil_'+reg+'_'+C+'_'+'lepweight'][i-1]*h_stat_err.GetBinContent(i), 2))
+                    print "=====================================\n"
+                    print '\n'
+                    print '\n'
+                    print "=====================================\n"
+                    print 'binerror2',binerror2
+                    binerror = math.sqrt(binerror2)
+                    print 'binerror',binerror
+                    print binerror/h_stat_err.GetBinContent(i)
+                    ratiosysterr.SetBinError(i, binerror/h_stat_err.GetBinContent(i))
+                    h_stat_syst_err.SetBinError(i, binerror/h_stat_err.GetBinContent(i))
+                else:
+                    ratiosysterr.SetBinError(i, 999.)
+                    h_stat_syst_err.SetBinError(i, 999.)
+
+
+    if 'MET' in hist or 'Recoil' in hist:
+        ratioleg.AddEntry(ratiosysterr, "stat + syst", "f")
+    else:
+        ratioleg.AddEntry(ratiostaterr, "stat", "f")
+
+    if(not NORATIOPLOT):
+        if 'MET' in str(hist) or 'Recoil' in str(hist):
+            h_stat_err.Draw("same E2")
+        else:
+            h_stat_syst_err.Draw("same E2")
  #============================================= Lower Tpad Decalaration ====================================
     if(not NORATIOPLOT):
         c12.cd()
@@ -838,7 +935,6 @@ def makeplot(loc,hist,titleX,XMIN,XMAX,Rebin,ISLOG,NORATIOPLOT,reg,varBin):
         DataMC.GetXaxis().SetTickLength(0.07);
         DataMC.GetXaxis().SetLabelFont(42);
         DataMC.GetYaxis().SetLabelFont(42);
-
 
 
     c1_1 = ROOT.TPad("c1_1", "newpad",0,0.00,1,0.3);
@@ -877,6 +973,10 @@ def makeplot(loc,hist,titleX,XMIN,XMAX,Rebin,ISLOG,NORATIOPLOT,reg,varBin):
         DataMC.GetXaxis().SetNdivisions(508)
         DataMC.GetYaxis().SetNdivisions(505)
         DataMC.Draw("P e1")
+        if 'MET' in str(hist) or 'Recoil' in str(hist):
+            ratiosysterr.Draw("e2 same")
+        else:
+            ratiostaterr.Draw("e2 same")
         ratiostaterr.Draw("e2 same")
         DataMC.Draw("P e1 same")
         line1=  ROOT.TLine(XMIN,0.2,XMAX,0.2)
@@ -887,8 +987,8 @@ def makeplot(loc,hist,titleX,XMIN,XMAX,Rebin,ISLOG,NORATIOPLOT,reg,varBin):
         line2.SetLineStyle(2)
         line2.SetLineColor(2)
         line2.SetLineWidth(2)
-        line1.Draw("same")
-        line2.Draw("same")
+        # line1.Draw("same")
+        # line2.Draw("same")
         #c1_1.SetGridy()
 
         ratioleg.Draw("same")
@@ -897,7 +997,11 @@ def makeplot(loc,hist,titleX,XMIN,XMAX,Rebin,ISLOG,NORATIOPLOT,reg,varBin):
 
     outputshapefilename=str(hist)
 
-    dataEvents = h_data.Integral()
+    dataEvents = h_data.Integral()  
+    tempDataHist = h_data.Clone()
+    tempDataHist.Rebin(tempDataHist.GetNbinsX())
+    dataEvents_err = tempDataHist.GetBinError(1)
+
     bkgTotal   = Stackhist.Integral()
     bkgTotal_tmp = Stackhist.Clone()
     bkgTotal_tmp.Rebin(bkgTotal_tmp.GetNbinsX())
@@ -907,17 +1011,17 @@ def makeplot(loc,hist,titleX,XMIN,XMAX,Rebin,ISLOG,NORATIOPLOT,reg,varBin):
         yeildFile = open(str(datestr)+'/monoHPng/'+str(outputshapefilename)+'.txt','w')
     if(ISLOG==1):
         yeildFile = open(str(datestr)+'/monoHPng/'+str(outputshapefilename)+'log.txt','w')
-    yeildFile.write('Z+jets      &   %.2f'%ZJetsCount+'  \pm   %.2f'%ZJets_stats_err+'\n')
-    yeildFile.write('DY+jets     &   %.2f'%DYJetsCount+'  \pm   %.2f'%DYJets_stats_err+'\n')
-    yeildFile.write('W+jets      &   %.2f'%WJetsCount+'  \pm   %.2f'%WJets_stats_err+'\n')
-    yeildFile.write('Single t    &   %.2f'%STopCount+'  \pm   %.2f'%STop_stats_err+'\n')
-    yeildFile.write('gamma+jets  &   %.2f'%GJetsCount+'  \pm   %.2f'%GJets_stats_err+'\n')
-    yeildFile.write('tt          &   %.2f'%TTCount+'  \pm   %.2f'%Top_stats_err+'\n')
-    yeildFile.write('DIBOSON     &   %.2f'%VVCount+'  \pm   %.2f'%DIBOSON_stats_err+'\n')
-    yeildFile.write('QCD         &   %.2f'%QCDCount+'  \pm   %.2f'%QCD_stats_err+'\n')
-    yeildFile.write('SM h        &   %.2f'%SMHCount+'  \pm   %.2f'%SMH_stats_err+'\n')
-    yeildFile.write('bkgSum      &   %.2f'%bkgTotal+'  \pm   %.2f'%bkgTotal_stats_err+'\n')
-    yeildFile.write('Data        &   %.2f'%dataEvents+'  \pm   %.2f'%bkgTotal_stats_err+'\n')
+    yeildFile.write('ZJets,&,%.2f'%ZJetsCount+'\pm%.2f'%ZJets_stats_err+",\\\\"+'\n')
+    yeildFile.write('DYJets,&,%.2f'%DYJetsCount+'\pm%.2f'%DYJets_stats_err+",\\\\"+'\n')
+    yeildFile.write('WJets,&,%.2f'%WJetsCount+'\pm%.2f'%WJets_stats_err+",\\\\"+'\n')
+    yeildFile.write('Singlet,&,%.2f'%STopCount+'\pm%.2f'%STop_stats_err+",\\\\"+'\n')
+    yeildFile.write('GJets,&,%.2f'%GJetsCount+'\pm%.2f'%GJets_stats_err+",\\\\"+'\n')
+    yeildFile.write('tt,&,%.2f'%TTCount+'\pm%.2f'%Top_stats_err+",\\\\"+'\n')
+    yeildFile.write('VV,&,%.2f'%VVCount+'\pm%.2f'%DIBOSON_stats_err+",\\\\"+'\n')
+    yeildFile.write('QCD,&,%.2f'%QCDCount+'\pm%.2f'%QCD_stats_err+",\\\\"+'\n')
+    yeildFile.write('SMh,&,%.2f'%SMHCount+'\pm%.2f'%SMH_stats_err+",\\\\"+'\n')
+    yeildFile.write('\sigma(SM),&,%.2f'%bkgTotal+'\pm%.2f'%bkgTotal_stats_err+",\\\\"+'\n')
+    yeildFile.write('Data,&,%.2f'%dataEvents+'\pm%.2f'%dataEvents_err+",\\\\"+'\n')
     yeildFile.close()
 
 
@@ -1034,7 +1138,7 @@ for reg in regions:
         #makeplot("reg_"+reg+"_min_dPhi",'h_reg_'+reg+'_min_dPhi','#dPhi(ak4,met)',0,4,1,0,0,'reg',varBin=False)#FJetCSV  min_dphi_jets
         #makeplot("reg_"+reg+"_min_dphi_jets",'h_reg_'+reg+'_min_dphi_jets','#dPhi(ak4,ak8)',0,4,1,1,0,'reg',varBin=False)
         makeplot("reg_"+reg+"_nJets",'h_reg_'+reg+'_nJets','nJets',0,5,1,0,0,'reg',varBin=False)
-        makeplot("reg_"+reg+"_MET",'h_reg_'+reg+'_MET','p^{miss}_{T} (GeV)',200.,1000.,1,1,0,'reg',varBin=False)
+        makeplot("reg_"+reg+"_MET",'h_reg_'+reg+'_MET','p^{miss}_{T} (GeV)',200.,1000.,1,1,0,reg,varBin=False)
 
         if makeSyst:
             makeplot("reg_"+reg+"_MET_btagweight_up",'h_reg_'+reg+'_MET_btagweight_up','p^{miss}_{T} (GeV)',200.,1000.,1,1,0,'reg',varBin=False)
@@ -1061,13 +1165,16 @@ for reg in regions:
             makeplot("reg_"+reg+"_FJetPt",'h_reg_'+reg+'_FJetPt','FATJET p_{T} (GeV)',200.,1000.,1,1,0,'reg',varBin=False)
             makeplot("reg_"+reg+"_FJetEta",'h_reg_'+reg+'_FJetEta','FATJET #eta',-2.5,2.5,1,0,0,'reg',varBin=False)
             makeplot("reg_"+reg+"_FJetPhi",'h_reg_'+reg+'_FJetPhi','FATJET #phi',-3.14,3.14,1,0,0,'reg',varBin=False)
-            makeplot("reg_"+reg+"_FJetMass",'h_reg_'+reg+'_FJetMass','SDMass',100,150,1,0,0,'reg',varBin=False)
+            makeplot("reg_"+reg+"_FJetMass",'h_reg_'+reg+'_FJetMass','SDMass',30,200,1,0,0,'reg',varBin=False)
         if not isBoosted:
 
             makeplot("reg_"+reg+"_Jet1Pt",'h_reg_'+reg+'_Jet1Pt','Jet1 p_{T}',0.0,1000.,1,1,0,'reg',varBin=False)
             makeplot("reg_"+reg+"_Jet1Eta",'h_reg_'+reg+'_Jet1Eta','Jet1 #eta',-2.5,2.5,1,0,0,'reg',varBin=False)
             makeplot("reg_"+reg+"_Jet1Phi",'h_reg_'+reg+'_Jet1Phi','Jet1 #phi',-3.14,3.14,1,0,0,'reg',varBin=False)
-            makeplot("reg_"+reg+"_DiJetMass",'h_reg_'+reg+'_DiJetMass','Mbb',0,400,1,0,0,'reg',varBin=False)
+            makeplot("reg_"+reg+"_Jet2Pt",'h_reg_'+reg+'_Jet2Pt','Jet2 p_{T}',30.0,700.,1,1,0,'reg',varBin=False)
+            makeplot("reg_"+reg+"_Jet2Eta",'h_reg_'+reg+'_Jet2Eta','Jet2 #eta',-2.5,2.5,1,0,0,'reg',varBin=False)
+            makeplot("reg_"+reg+"_Jet2Phi",'h_reg_'+reg+'_Jet2Phi','Jet2 #phi',-3.14,3.14,1,0,0,'reg',varBin=False)
+            makeplot("reg_"+reg+"_DiJetMass",'h_reg_'+reg+'_DiJetMass','Mbb',0,300,1,0,0,'reg',varBin=False)
 
     # elif makeSBandplots:
     #     # makeplot("reg_"+reg+"_min_dPhi",'h_reg_'+reg+'_min_dPhi','#dPhi(ak4,met)',0,4,1,1,0,'reg',varBin=False)#FJetCSV
@@ -1105,7 +1212,7 @@ for reg in regions:
 
 
     else:
-        makeplot("reg_"+reg+"_Recoil",'h_reg_'+reg+'_Recoil','U (GeV)',200.,1000.,1,1,0,'reg',varBin=False)
+        makeplot("reg_"+reg+"_Recoil",'h_reg_'+reg+'_Recoil','U (GeV)',200.,1000.,1,1,0,reg,varBin=False)
         if makeSyst:
             makeplot("reg_"+reg+"_Recoil_btagweight_up",'h_reg_'+reg+'_Recoil_btagweight_up','U (GeV)',200.,1000.,1,1,0,'reg',varBin=False)
             makeplot("reg_"+reg+"_Recoil_btagweight_down",'h_reg_'+reg+'_Recoil_btagweight_down','U (GeV)',200.,1000.,1,1,0,'reg',varBin=False)
@@ -1129,6 +1236,10 @@ for reg in regions:
         makeplot("reg_"+reg+"_MET",'h_reg_'+reg+'_MET','p^{miss}_{T} (GeV)',0.0,1000.,1,1,0,'reg',varBin=False)
         makeplot("reg_"+reg+"_min_dPhi",'h_reg_'+reg+'_min_dPhi','#dPhi(ak4,met)',0,4,1,0,0,'reg',varBin=False)#FJetCSV
         makeplot("reg_"+reg+"_met_Phi",'h_reg_'+reg+'_met_Phi','met phi',-4,4,1,0,0,'reg',varBin=False)#FJetCSV
+        makeplot("reg_"+reg+"_Jet1Pt",'h_reg_'+reg+'_Jet1Pt','Jet1 p_{T}',30.0,700.,1,1,0,'reg',varBin=False)
+        makeplot("reg_"+reg+"_Jet1Eta",'h_reg_'+reg+'_Jet1Eta','Jet1 #eta',-2.5,2.5,1,0,0,'reg',varBin=False)
+        makeplot("reg_"+reg+"_Jet1Phi",'h_reg_'+reg+'_Jet1Phi','Jet1 #phi',-3.14,3.14,1,0,0,'reg',varBin=False)
+
         if isBoosted:
             makeplot("reg_"+reg+"_FJetN2b1",'h_reg_'+reg+'_FJetN2b1','N2b1',-1,1,1,0,0,'reg',varBin=False)
             makeplot("reg_"+reg+"_N2DDT",'h_reg_'+reg+'_N2DDT','N2DDT',-1,1,1,0,0,'reg',varBin=False)
@@ -1136,17 +1247,22 @@ for reg in regions:
             makeplot("reg_"+reg+"_FJetPt",'h_reg_'+reg+'_FJetPt','FATJET p_{T} (GeV)',200.,1000.,1,1,0,'reg',varBin=False)
             makeplot("reg_"+reg+"_FJetEta",'h_reg_'+reg+'_FJetEta','FATJET #eta',-2.5,2.5,1,0,0,'reg',varBin=False)
             makeplot("reg_"+reg+"_FJetPhi",'h_reg_'+reg+'_FJetPhi','FATJET #phi',-3.14,3.14,1,0,0,'reg',varBin=False)
-            makeplot("reg_"+reg+"_FJetMass",'h_reg_'+reg+'_FJetMass','SDMass',100,150,1,0,0,'reg',varBin=False)
+            makeplot("reg_"+reg+"_FJetMass",'h_reg_'+reg+'_FJetMass','SDMass',30,200,1,0,0,'reg',varBin=False)
             makeplot("reg_"+reg+"_FJetCSV",'h_reg_'+reg+'_FJetCSV','DDB tagger',0,1,1,0,0,'reg',varBin=False)#FJetCSV
         if not isBoosted:
-            makeplot("reg_"+reg+"_Jet1Pt",'h_reg_'+reg+'_Jet1Pt','Jet1 p_{T}',0.0,1000.,1,1,0,'reg',varBin=False)
-            makeplot("reg_"+reg+"_Jet1Eta",'h_reg_'+reg+'_Jet1Eta','Jet1 #eta',-2.5,2.5,1,0,0,'reg',varBin=False)
-            makeplot("reg_"+reg+"_Jet1Phi",'h_reg_'+reg+'_Jet1Phi','Jet1 #phi',-3.14,3.14,1,0,0,'reg',varBin=False)
+            # makeplot("reg_"+reg+"_Jet1Pt",'h_reg_'+reg+'_Jet1Pt','Jet1 p_{T}',0.0,1000.,1,1,0,'reg',varBin=False)
+            # makeplot("reg_"+reg+"_Jet1Eta",'h_reg_'+reg+'_Jet1Eta','Jet1 #eta',-2.5,2.5,1,0,0,'reg',varBin=False)
+            # makeplot("reg_"+reg+"_Jet1Phi",'h_reg_'+reg+'_Jet1Phi','Jet1 #phi',-3.14,3.14,1,0,0,'reg',varBin=False)
+            makeplot("reg_"+reg+"_DiJetMass",'h_reg_'+reg+'_DiJetMass','Mbb',0,300,1,0,0,'reg',varBin=False)
+            makeplot("reg_"+reg+"_Jet2Pt",'h_reg_'+reg+'_Jet2Pt','Jet2 p_{T}',30.0,700.,1,1,0,'reg',varBin=False)
+            makeplot("reg_"+reg+"_Jet2Eta",'h_reg_'+reg+'_Jet2Eta','Jet2 #eta',-2.5,2.5,1,0,0,'reg',varBin=False)
+            makeplot("reg_"+reg+"_Jet2Phi",'h_reg_'+reg+'_Jet2Phi','Jet2 #phi',-3.14,3.14,1,0,0,'reg',varBin=False)
+
 
         makeplot("reg_"+reg+"_nJets",'h_reg_'+reg+'_nJets','nJets',0,5,1,0,0,'reg',varBin=False)
         makeplot("reg_"+reg+"_lep1_pT",'h_reg_'+reg+'_lep1_pT','lepton1 p_{T}',0,500,1,1,0,'reg',varBin=False)
         makeplot("reg_"+reg+"_lep1_eta",'h_reg_'+reg+'_lep1_eta','lepton1 #eta',-2.5,2.5,1,0,0,'reg',varBin=False)
-        makeplot("reg_"+reg+"_lep1_Phi",'h_reg_'+reg+'_lep1_Phi','lepton1 #phi',-3.14,3.14,1,0,0,'reg',varBin=False)
+        makeplot("reg_"+reg+"_lep1_Phi",'h_reg_'+reg+'_lep1_Phi','lepton1 #phi',-3.14,3.14,1,0,0,'reg',varBin=False)#dPhi_lep1_met
 
 
         if 'Zee' in reg or 'Zmumu' in reg:
@@ -1161,3 +1277,4 @@ for reg in regions:
 	if not isBoosted:
 	    makeplot("reg_"+reg+"_before_nPV",'h_reg_'+reg+'_before_nPV','noReweight_nPV',0,100,1,0,0,'reg',varBin=False)
             makeplot("reg_"+reg+"_after_nPV",'h_reg_'+reg+'_after_nPV','Reweight_nPV',0,100,1,0,0,'reg',varBin=False)
+            makeplot("reg_"+reg+"_dPhi_lep1_met",'h_reg_'+reg+'_dPhi_lep1_met',' #Delta#phi(met,lep1)',-3.14,3.14,1,0,0,'reg',varBin=False)
